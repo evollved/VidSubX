@@ -52,8 +52,9 @@ def extract_bboxes(files: Path) -> list:
     boxes = []
     for file in files.iterdir():
         result = ocr_engine.predict(str(file))
-        box = result[0]["dt_polys"]
-        boxes.append(box)
+        dt_polys = result[0]["dt_polys"]
+        for box in dt_polys:
+            boxes.append(box)
     return boxes
 
 
