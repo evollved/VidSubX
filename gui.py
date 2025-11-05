@@ -718,10 +718,10 @@ class SubtitleExtractorGUI:
         """
         Overwrite progress bar text in text widget, if detected in present and previous line.
         """
-        if " |#" in text or "-| " in text:
+        if " |#" in text or "-| " in text or "it/s" in text:
             start, stop = 'end - 1 lines', 'end - 1 lines lineend'
             previous_line = self.text_output_widget.get(start, stop)
-            if " |#" in previous_line or "-| " in previous_line:
+            if " |#" in previous_line or "-| " in previous_line or "it/s" in previous_line:
                 self.clear_output(start, stop)
 
     def write_to_output(self, text: str) -> None:
@@ -734,6 +734,15 @@ class SubtitleExtractorGUI:
         self.text_output_widget.insert("end", text)
         self.text_output_widget.see("end")
         self.text_output_widget.configure(state="disabled")
+
+    def gui_setup_ocr(self) -> None:
+        """
+        Modify the gui to properly display the download of the models. This method should not be run from main thread.
+        tqdm uses stderr so the download progress texts are rerouted.
+        """
+        sys.stderr.write = self.write_to_output
+        setup_ocr()  # if lang changes, the new lang model will be downloaded.
+        sys.stderr.write = self.error_message_handler
 
     def send_notification(self, title: str, message: str = "") -> None:
         operating_system = platform.system()
@@ -758,7 +767,7 @@ class SubtitleExtractorGUI:
         start, use_search_area = time.perf_counter(), utils.Config.use_search_area
         self.thread_running = True
         try:
-            setup_ocr()
+            self.gui_setup_ocr()
             start = time.perf_counter()
             for video in self.video_queue.keys():
                 if utils.Process.interrupt_process:
@@ -809,7 +818,7 @@ class SubtitleExtractorGUI:
         logger.info(f"Subtitle Language: {utils.Config.ocr_rec_language}\n")
         self.thread_running = True
         try:
-            setup_ocr()
+            self.gui_setup_ocr()
             for video, sub_info in self.video_queue.items():
                 sub_area, start_frame, stop_frame = sub_info[0], sub_info[1], sub_info[2]
                 start_frame = int(start_frame) if start_frame else start_frame
