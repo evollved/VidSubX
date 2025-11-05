@@ -1104,18 +1104,7 @@ class PreferencesUI(tk.Toplevel):
             width=self.entry_size
         ).grid(column=1, row=0)
 
-        ttk.Label(text_extraction_frame, text="Onnx Intra Threads:").grid(column=0, row=1)
-        self.onnx_intra_threads = tk.IntVar(value=utils.Config.onnx_intra_threads)
-        self.onnx_intra_threads.trace_add("write", self._set_reset_button)
-        ttk.Spinbox(
-            text_extraction_frame,
-            from_=0, to=cpu_count(),
-            textvariable=self.onnx_intra_threads,
-            state="readonly",
-            width=self.spinbox_size
-        ).grid(column=1, row=1)
-
-        ttk.Label(text_extraction_frame, text="OCR Max Processes:").grid(column=0, row=2, pady=self.wgt_y_padding)
+        ttk.Label(text_extraction_frame, text="OCR Max Processes:").grid(column=0, row=1)
         self.ocr_max_processes = tk.IntVar(value=utils.Config.ocr_max_processes)
         self.ocr_max_processes.trace_add("write", self._set_reset_button)
         ttk.Spinbox(
@@ -1124,9 +1113,10 @@ class PreferencesUI(tk.Toplevel):
             textvariable=self.ocr_max_processes,
             state="readonly",
             width=self.spinbox_size
-        ).grid(column=1, row=2)
+        ).grid(column=1, row=1)
 
-        ttk.Label(text_extraction_frame, text="OCR Recognition Language:").grid(column=0, row=3)
+        ttk.Label(text_extraction_frame, text="OCR Recognition Language:").grid(column=0, row=2,
+                                                                                pady=self.wgt_y_padding)
         self.ocr_rec_language = tk.StringVar(value=utils.Config.ocr_rec_language)
         self.ocr_rec_language.trace_add("write", self._set_reset_button)
         ttk.Combobox(
@@ -1140,9 +1130,9 @@ class PreferencesUI(tk.Toplevel):
                     'uk', 'ur', 'uz', 'vi'],
             state="readonly",
             width=self.combobox_size
-        ).grid(column=1, row=3)
+        ).grid(column=1, row=2)
 
-        ttk.Label(text_extraction_frame, text="Text Drop Score:").grid(column=0, row=4, pady=self.wgt_y_padding)
+        ttk.Label(text_extraction_frame, text="Text Drop Score:").grid(column=0, row=3)
         self.text_drop_score = tk.DoubleVar(value=utils.Config.text_drop_score)
         self.text_drop_score.trace_add("write", self._set_reset_button)
         ttk.Spinbox(
@@ -1152,7 +1142,7 @@ class PreferencesUI(tk.Toplevel):
             textvariable=self.text_drop_score,
             state="readonly",
             width=self.spinbox_size
-        ).grid(column=1, row=4)
+        ).grid(column=1, row=3)
 
         self.line_break = tk.BooleanVar(value=utils.Config.line_break)
         self.line_break.trace_add("write", self._set_reset_button)
@@ -1160,7 +1150,7 @@ class PreferencesUI(tk.Toplevel):
             text_extraction_frame,
             text='Use Line Break',
             variable=self.line_break
-        ).grid(column=0, row=5)
+        ).grid(column=0, row=4, pady=self.wgt_y_padding)
 
     def _subtitle_generator_tab(self) -> None:
         """
@@ -1282,7 +1272,6 @@ class PreferencesUI(tk.Toplevel):
             utils.Config.default_frame_extraction_frequency,
             utils.Config.default_frame_extraction_batch_size,
             utils.Config.default_text_extraction_batch_size,
-            utils.Config.default_onnx_intra_threads,
             utils.Config.default_ocr_max_processes,
             utils.Config.default_ocr_rec_language,
             utils.Config.default_text_drop_score,
@@ -1307,7 +1296,6 @@ class PreferencesUI(tk.Toplevel):
                 self.frame_extraction_frequency.get(),
                 self.frame_extraction_batch_size.get(),
                 self.text_extraction_batch_size.get(),
-                self.onnx_intra_threads.get(),
                 self.ocr_max_processes.get(),
                 self.ocr_rec_language.get(),
                 self.text_drop_score.get(),
@@ -1369,7 +1357,6 @@ class PreferencesUI(tk.Toplevel):
         self.frame_extraction_batch_size.set(utils.Config.default_frame_extraction_batch_size)
         # Text extraction settings.
         self.text_extraction_batch_size.set(utils.Config.default_text_extraction_batch_size)
-        self.onnx_intra_threads.set(utils.Config.default_onnx_intra_threads)
         self.ocr_max_processes.set(utils.Config.default_ocr_max_processes)
         self.ocr_rec_language.set(utils.Config.default_ocr_rec_language)
         self.text_drop_score.set(utils.Config.default_text_drop_score)
@@ -1403,7 +1390,6 @@ class PreferencesUI(tk.Toplevel):
                     utils.Config.keys[1]: self.frame_extraction_batch_size.get(),
                     # Text extraction settings.
                     utils.Config.keys[2]: self.text_extraction_batch_size.get(),
-                    utils.Config.keys[3]: self.onnx_intra_threads.get(),
                     utils.Config.keys[17]: self.ocr_max_processes.get(),
                     utils.Config.keys[4]: self.ocr_rec_language.get(),
                     utils.Config.keys[18]: self.text_drop_score.get(),
