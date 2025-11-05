@@ -1,13 +1,20 @@
 import logging
+import os
 import warnings
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
+import utilities.utils as utils
+
+os.environ["GLOG_minloglevel"] = "2"  # Supress InitGoogleLogging logs
 warnings.filterwarnings("ignore", "No ccache found. Please be aware that recompiling", UserWarning)
+warnings.filterwarnings("ignore", "Value do not have 'place' interface for pir graph mode", UserWarning)
+
 import paddle
 from paddleocr import PaddleOCR
 
-import utilities.utils as utils
+logging.getLogger("paddlex").setLevel(logging.CRITICAL)
+logging.getLogger("httpx").setLevel(logging.WARNING)  # Supress logs when downloading models
 
 logger = logging.getLogger(__name__)
 
