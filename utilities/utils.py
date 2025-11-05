@@ -1,4 +1,5 @@
 import logging
+import os
 from configparser import ConfigParser
 from pathlib import Path
 
@@ -40,10 +41,10 @@ class Config:
 
     # Permanent values
     subarea_height_scaler = 0.75
+    ocr_opts = {"use_doc_orientation_classify": False, "use_doc_unwarping": False, "use_textline_orientation": False}
     model_dir = Path.cwd() / "models"
-    ocr_opts = {"det_db_unclip_ratio": 2, "use_angle_cls": True, "show_log": False, "use_onnx": True}
-    if model_dir.exists():
-        ocr_opts["base_dir"] = str(model_dir)
+    model_dir.mkdir(parents=False, exist_ok=True)
+    os.environ["PADDLE_PDX_CACHE_HOME"] = str(model_dir)
 
     # Default values
     default_frame_extraction_frequency = 2
@@ -53,7 +54,7 @@ class Config:
     default_onnx_intra_threads = 8
     default_ocr_max_processes = 6
     default_ocr_rec_language = "ch"
-    default_text_drop_score = 0.7
+    default_text_drop_score = 0.5
     default_line_break = False
 
     default_text_similarity_threshold = 0.85
