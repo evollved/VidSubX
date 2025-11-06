@@ -23,6 +23,7 @@ def setup_ocr() -> None:
     setup_ocr_device()
     download_models()
     lang = utils.Config.ocr_rec_language
+    utils.Config.ocr_opts["lang"] = lang
     if lang == "ch" or lang == "en":
         utils.Config.ocr_opts["ocr_version"] = "PP-OCRv4"
     else:
@@ -44,7 +45,7 @@ def download_models() -> None:
     Download models if dir does not exist.
     """
     logger.info("Checking for requested models...")
-    _ = PaddleOCR(lang=utils.Config.ocr_rec_language, **utils.Config.ocr_opts)
+    _ = PaddleOCR(**utils.Config.ocr_opts)
     logger.info("")
 
 
@@ -53,7 +54,7 @@ def extract_bboxes(files: Path) -> list:
     Returns the bounding boxes of detected texted in images.
     :param files: Directory with images for detection.
     """
-    ocr_engine = PaddleOCR(lang=utils.Config.ocr_rec_language, **utils.Config.ocr_opts)
+    ocr_engine = PaddleOCR(**utils.Config.ocr_opts)
     boxes = []
     for file in files.iterdir():
         result = ocr_engine.predict(str(file))
@@ -63,7 +64,7 @@ def extract_bboxes(files: Path) -> list:
     return boxes
 
 
-def extract_text(ocr_config, text_output: Path, files: list, line_sep: str) -> None:
+def extract_text(ocr_config: dict, text_output: Path, files: list, line_sep: str) -> None:
     """
     Extract text from a frame using ocr.
     :param ocr_config: OCR engine configuration.
@@ -88,13 +89,13 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     batch_size = utils.Config.text_extraction_batch_size  # Size of files given to each processor.
     prefix, device = "Text Extraction", utils.Config.ocr_opts.get("device", "gpu").upper()
     max_processes = utils.Config.ocr_cpu_max_processes if device == "CPU" else utils.Config.ocr_gpu_max_processes
+    line_sep = "\n" if utils.Config.line_break else " "
+
     if utils.Process.interrupt_process:  # Cancel if process has been cancelled by gui.
         logger.warning(f"{prefix} process interrupted!")
         return
 
-    ocr_config = {"text_rec_score_thresh": utils.Config.text_drop_score,
-                  "lang": utils.Config.ocr_rec_language} | utils.Config.ocr_opts
-    line_sep = "\n" if utils.Config.line_break else " "
+    ocr_config = {"text_rec_score_thresh": utils.Config.text_drop_score} | utils.Config.ocr_opts
     files = list(frame_output.iterdir())
     file_batches = [files[i:i + batch_size] for i in range(0, len(files), batch_size)]
     no_batches = len(file_batches)
