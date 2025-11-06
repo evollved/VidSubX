@@ -87,6 +87,7 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     """
     batch_size = utils.Config.text_extraction_batch_size  # Size of files given to each processor.
     prefix, device = "Text Extraction", utils.Config.ocr_opts.get("device", "gpu").upper()
+    max_processes = utils.Config.ocr_cpu_max_processes if device == "CPU" else utils.Config.ocr_gpu_max_processes
     if utils.Process.interrupt_process:  # Cancel if process has been cancelled by gui.
         logger.warning(f"{prefix} process interrupted!")
         return
@@ -98,7 +99,7 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     file_batches = [files[i:i + batch_size] for i in range(0, len(files), batch_size)]
     no_batches = len(file_batches)
     logger.info(f"Starting Multiprocess {prefix} from frames on {device}, Batches: {no_batches}.")
-    with ProcessPoolExecutor(utils.Config.ocr_max_processes) as executor:
+    with ProcessPoolExecutor(max_processes) as executor:
         futures = [executor.submit(extract_text, ocr_config, text_output, files, line_sep) for files in file_batches]
         for i, f in enumerate(as_completed(futures)):  # as each  process completes
             f.result()  # Prevents silent bugs. Exceptions raised will be displayed.

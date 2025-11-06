@@ -41,13 +41,11 @@ Frame Extraction Batch Size: The number of frames to be extracted by each CPU co
 
 Text Extraction Batch Size: The number of frames to be extracted by each CPU or GPU core/process.
 
-Onnx Intra Threads: The number of threads used by Onnx to parallelize the execution within nodes.
+OCR CPU Max Processes: The maximum number of CPU cores to be used for extraction of text from the video. Too little or
+too many will increase extraction time.
 
-OCR Max Processes: The maximum number of CPU or GPU core/processes to be used for extraction of text from the video.
-Too little or too many will increase extraction time.
-
-**Note:** Onnx Intra Threads & OCR Max Processes will require some testing with different values to determine the
-optimal values that provide high utilization of CPU or GPU.
+OCR GPU Max Processes: The maximum number of GPU processes to be used for extraction of text from the video. Used only
+if GPU is available. Using too many will cause a crash if GPU memory is not enough.
 
 OCR Recognition Language: The language of the subtitle in the video to be extracted.
 

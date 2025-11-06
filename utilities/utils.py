@@ -1,6 +1,7 @@
 import logging
 import os
 from configparser import ConfigParser
+from os import cpu_count
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,22 @@ class Process:
         logger.debug(f"interrupt_process set to: {cls.interrupt_process}")
 
 
+def default_ocr_cpu_processes() -> int:
+    """
+    Calculates the ideal number of CPU processes to be used by the ocr.
+    """
+    # todo: complete the function
+    return cpu_count()
+
+
+def default_ocr_gpu_processes() -> int:
+    """
+    Calculates the ideal number of GPU processes to be used by the ocr.
+    """
+    # todo: complete the function
+    return cpu_count() // 2
+
+
 class Config:
     # Config file location will always be the same regardless of which module starts the program.
     config_file = Path(__file__).parent.parent / "config.ini"
@@ -34,10 +51,10 @@ class Config:
 
     sections = ["Frame Extraction", "Text Extraction", "Subtitle Generator", "Subtitle Detection", "Notification"]
     keys = ["frame_extraction_frequency", "frame_extraction_batch_size", "text_extraction_batch_size",
-            "onnx_intra_threads", "ocr_rec_language", "text_similarity_threshold", "min_consecutive_sub_dur_ms",
+            "ocr_gpu_max_processes", "ocr_rec_language", "text_similarity_threshold", "min_consecutive_sub_dur_ms",
             "max_consecutive_short_durs", "min_sub_duration_ms", "split_start", "split_stop", "no_of_frames",
             "sub_area_x_rel_padding", "sub_area_y_abs_padding", "use_search_area", "win_notify_sound",
-            "win_notify_loop_sound", "ocr_max_processes", "text_drop_score", "use_gpu", "line_break"]
+            "win_notify_loop_sound", "ocr_cpu_max_processes", "text_drop_score", "use_gpu", "line_break"]
 
     # Permanent values
     subarea_height_scaler = 0.75
@@ -50,12 +67,12 @@ class Config:
     default_frame_extraction_frequency = 2
     default_frame_extraction_batch_size = 250
 
-    default_text_extraction_batch_size = 100
-    default_onnx_intra_threads = 8
-    default_ocr_max_processes = 6
+    default_text_extraction_batch_size = 350
+    default_ocr_gpu_max_processes = default_ocr_gpu_processes()
+    default_ocr_cpu_max_processes = default_ocr_cpu_processes()
     default_ocr_rec_language = "ch"
-    default_text_drop_score = 0.5
-    default_line_break = False
+    default_text_drop_score = 0.55
+    default_line_break = True
 
     default_text_similarity_threshold = 0.85
     default_min_consecutive_sub_dur_ms = 500.0
@@ -75,7 +92,7 @@ class Config:
 
     # Initial values
     frame_extraction_frequency = frame_extraction_batch_size = None
-    text_extraction_batch_size = onnx_intra_threads = ocr_max_processes = ocr_rec_language = text_drop_score = None
+    text_extraction_batch_size = ocr_gpu_max_processes = ocr_cpu_max_processes = ocr_rec_language = text_drop_score = None
     text_similarity_threshold = min_consecutive_sub_dur_ms = max_consecutive_short_durs = min_sub_duration_ms = use_gpu = None
     split_start = split_stop = no_of_frames = sub_area_x_rel_padding = sub_area_y_abs_padding = use_search_area = None
     win_notify_sound = win_notify_loop_sound = line_break = None
@@ -92,8 +109,8 @@ class Config:
         self.config[self.sections[0]] = {self.keys[0]: str(self.default_frame_extraction_frequency),
                                          self.keys[1]: self.default_frame_extraction_batch_size}
         self.config[self.sections[1]] = {self.keys[2]: self.default_text_extraction_batch_size,
-                                         self.keys[3]: self.default_onnx_intra_threads,
-                                         self.keys[17]: self.default_ocr_max_processes,
+                                         self.keys[3]: self.default_ocr_gpu_max_processes,
+                                         self.keys[17]: self.default_ocr_cpu_max_processes,
                                          self.keys[4]: self.default_ocr_rec_language,
                                          self.keys[18]: self.default_text_drop_score,
                                          self.keys[20]: self.default_line_break}
@@ -122,8 +139,8 @@ class Config:
         cls.frame_extraction_batch_size = cls.config[cls.sections[0]].getint(cls.keys[1])
 
         cls.text_extraction_batch_size = cls.config[cls.sections[1]].getint(cls.keys[2])
-        cls.onnx_intra_threads = cls.config[cls.sections[1]].getint(cls.keys[3])
-        cls.ocr_max_processes = cls.config[cls.sections[1]].getint(cls.keys[17])
+        cls.ocr_gpu_max_processes = cls.config[cls.sections[1]].getint(cls.keys[3])
+        cls.ocr_cpu_max_processes = cls.config[cls.sections[1]].getint(cls.keys[17])
         cls.ocr_rec_language = cls.config[cls.sections[1]][cls.keys[4]]
         cls.text_drop_score = cls.config[cls.sections[1]].getfloat(cls.keys[18])
         cls.line_break = cls.config[cls.sections[1]].getboolean(cls.keys[20])
@@ -159,10 +176,10 @@ class Config:
 
         cls.text_extraction_batch_size = kwargs.get(cls.keys[2], cls.text_extraction_batch_size)
         cls.config[cls.sections[1]][cls.keys[2]] = str(cls.text_extraction_batch_size)
-        cls.onnx_intra_threads = kwargs.get(cls.keys[3], cls.onnx_intra_threads)
-        cls.config[cls.sections[1]][cls.keys[3]] = str(cls.onnx_intra_threads)
-        cls.ocr_max_processes = kwargs.get(cls.keys[17], cls.ocr_max_processes)
-        cls.config[cls.sections[1]][cls.keys[17]] = str(cls.ocr_max_processes)
+        cls.ocr_gpu_max_processes = kwargs.get(cls.keys[3], cls.ocr_gpu_max_processes)
+        cls.config[cls.sections[1]][cls.keys[3]] = str(cls.ocr_gpu_max_processes)
+        cls.ocr_cpu_max_processes = kwargs.get(cls.keys[17], cls.ocr_cpu_max_processes)
+        cls.config[cls.sections[1]][cls.keys[17]] = str(cls.ocr_cpu_max_processes)
         cls.ocr_rec_language = kwargs.get(cls.keys[4], cls.ocr_rec_language)
         cls.config[cls.sections[1]][cls.keys[4]] = cls.ocr_rec_language
         cls.text_drop_score = kwargs.get(cls.keys[18], cls.text_drop_score)
