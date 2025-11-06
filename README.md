@@ -76,13 +76,13 @@ Install packages
 For GPU
 
 ```
-pip install onnxruntime-gpu[cuda,cudnn]==1.21.0
+pip install paddlepaddle-gpu==3.2.1 -i https://www.paddlepaddle.org.cn/packages/stable/cu129/
 ```
 
 For CPU
 
 ```
-pip install onnxruntime==1.21.0
+pip install paddlepaddle==3.2.1
 ```
 
 Other packages
