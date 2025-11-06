@@ -22,6 +22,11 @@ logger = logging.getLogger(__name__)
 def setup_ocr() -> None:
     setup_ocr_device()
     download_models()
+    lang = utils.Config.ocr_rec_language
+    if lang == "ch" or lang == "en":
+        utils.Config.ocr_opts["ocr_version"] = "PP-OCRv4"
+    else:
+        utils.Config.ocr_opts.pop("ocr_version", None)
 
 
 def setup_ocr_device() -> None:

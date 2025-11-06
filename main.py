@@ -151,7 +151,7 @@ class SubtitleExtractor:
         """
         self.video_path, self.subtitle_texts = None, {}
         self.divider = "--"  # Characters for separating time durations(ms) in key name.
-        self.vd_output_dir = Path(__file__).parent / "output"  # Create cache directory.
+        self.vd_output_dir = Path(__file__).parent / "output"  # Cache directory.
         # Extracted video frame storage directory. Extracted text file storage directory.
         self.frame_output, self.text_output = self.vd_output_dir / "frames", self.vd_output_dir / "extracted texts"
 
