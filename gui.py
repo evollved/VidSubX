@@ -53,7 +53,7 @@ class CustomMessageBox(tk.Toplevel):
     """
     instance = None
 
-    def __init__(self, icon_file: str, win_title: str, win_x: int, win_y: int) -> None:
+    def __init__(self, icon_file: Path, win_title: str, win_x: int, win_y: int) -> None:
         """
         Initialize the CustomMessageBox instance.
         If an instance of CustomMessageBox already exists, it is reused. Otherwise, a new instance is created.
@@ -76,7 +76,7 @@ class CustomMessageBox(tk.Toplevel):
         self.text_box = tk.Text(self, state="disabled", borderwidth=10.0, relief="flat")
         self.text_box.grid(sticky="N, S, E, W")
         # Create scrollbar widget for text widget.
-        output_scroll = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.text_box.yview)
+        output_scroll = ttk.Scrollbar(self, orient="vertical", command=self.text_box.yview)
         output_scroll.grid(column=1, row=0, sticky="N,S")
 
         # Resize text message box frame if main frame is resized.
@@ -138,7 +138,7 @@ class SubtitleExtractorGUI:
         """
         # Window title and icon.
         self.window_title = "VidSubX"
-        self.icon_file = "vsx.ico"
+        self.icon_file = Path(__file__).parent / "docs/images/vsx.ico"
         self.root.title(self.window_title)
         if platform.system() == "Windows":
             self.root.iconbitmap(self.icon_file)
@@ -217,7 +217,7 @@ class SubtitleExtractorGUI:
         video_work_frame = ttk.Frame(video_frame)
         video_work_frame.grid(column=0, row=1)
 
-        self.video_scale = ttk.Scale(video_work_frame, command=self._frame_slider, orient=tk.HORIZONTAL, length=600,
+        self.video_scale = ttk.Scale(video_work_frame, command=self._frame_slider, orient="horizontal", length=600,
                                      state="disabled")
         self.video_scale.grid(column=0, row=1, padx=(0, 60))  # Only the right side is padded.
         # Show timecode of the video scale.
@@ -245,7 +245,7 @@ class SubtitleExtractorGUI:
         self.run_button.grid(column=0, row=0, pady=6, padx=10)
 
         # Create progress bar widget for showing the text extraction progress.
-        self.progress_bar = ttk.Progressbar(progress_frame, orient=tk.HORIZONTAL, length=500, mode='determinate')
+        self.progress_bar = ttk.Progressbar(progress_frame, orient="horizontal", length=500, mode='determinate')
         self.progress_bar.grid(column=1, row=0, padx=10)
 
         # Create button widget for previous video in queue for subtitle area selection.
@@ -279,7 +279,7 @@ class SubtitleExtractorGUI:
         self.text_output_widget.grid(column=0, row=0, sticky="N, S, E, W")
 
         # Create scrollbar widget for text widget.
-        output_scroll = ttk.Scrollbar(output_frame, orient=tk.VERTICAL, command=self.text_output_widget.yview)
+        output_scroll = ttk.Scrollbar(output_frame, orient="vertical", command=self.text_output_widget.yview)
         output_scroll.grid(column=1, row=0, sticky="N,S")
 
         # Connect text and scrollbar widgets.
@@ -911,7 +911,7 @@ class SubtitleExtractorGUI:
 
 
 class PreferencesUI(tk.Toplevel):
-    def __init__(self, icon_file: str, win_x: int, win_y: int) -> None:
+    def __init__(self, icon_file: Path, win_x: int, win_y: int) -> None:
         super().__init__()
         self.icon_file = icon_file
         self.geometry(f"+{win_x}+{win_y}")  # Set window position.
