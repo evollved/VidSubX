@@ -1146,12 +1146,14 @@ class PreferencesUI(tk.Toplevel):
         ttk.Combobox(
             text_extraction_frame,
             textvariable=self.ocr_rec_language,
-            values=['abq', 'ady', 'af', 'ang', 'ar', 'ava', 'az', 'be', 'bg', 'bh', 'bho', 'bs', 'ch', 'chinese_cht',
-                    'cs', 'cy', 'da', 'dar', 'en', 'es', 'et', 'fa', 'fr', 'ga', 'german', 'gom', 'hi', 'hr', 'hu',
-                    'id', 'inh', 'is', 'it', 'japan', 'kbd', 'korean', 'ku', 'lbe', 'lez', 'lt', 'lv', 'mah', 'mai',
-                    'mi', 'mn', 'mr', 'ms', 'mt', 'ne', 'new', 'nl', 'no', 'oc', 'pl', 'pt', 'ro', 'rs_cyrillic',
-                    'rs_latin', 'ru', 'sa', 'sck', 'sk', 'sl', 'sq', 'sv', 'sw', 'ta', 'tab', 'te', 'tl', 'tr', 'ug',
-                    'uk', 'ur', 'uz', 'vi'],
+            values=['abq', 'ady', 'af', 'ang', 'ar', 'ava', 'az', 'ba', 'bal', 'be', 'bg', 'bgc', 'bh', 'bho', 'bs',
+                    'bua', 'ca', 'ch', 'che', 'chinese_cht', 'cs', 'cv', 'cy', 'da', 'dar', 'de', 'en', 'es', 'et',
+                    'eu', 'fa', 'fi', 'fr', 'french', 'ga', 'german', 'gl', 'gom', 'hi', 'hr', 'hu', 'id', 'inh', 'is',
+                    'it', 'japan', 'ka', 'kaa', 'kbd', 'kk', 'korean', 'ku', 'kv', 'ky', 'la', 'lb', 'lbe', 'lez', 'lt',
+                    'lv', 'mah', 'mai', 'mhr', 'mi', 'mk', 'mn', 'mo', 'mr', 'ms', 'mt', 'ne', 'new', 'nl', 'no', 'oc',
+                    'os', 'pi', 'pl', 'ps', 'pt', 'qu', 'rm', 'ro', 'rs_cyrillic', 'rs_latin', 'ru', 'sa', 'sah', 'sck',
+                    'sd', 'sk', 'sl', 'sq', 'sv', 'sw', 'ta', 'tab', 'te', 'tg', 'tl', 'tr', 'tt', 'tyv', 'udm', 'ug',
+                    'uk', 'ur', 'uz', 'vi', 'xal'],
             state="readonly",
             width=self.combobox_size
         ).grid(column=1, row=3)
