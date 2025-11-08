@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore", "No ccache found. Please be aware that recompi
 warnings.filterwarnings("ignore", "Value do not have 'place' interface for pir graph mode", UserWarning)
 
 import paddle
-from paddleocr import PaddleOCR
+from paddleocr import PaddleOCR, TextDetection
 
 logging.getLogger("paddlex").setLevel(logging.CRITICAL)
 logging.getLogger("httpx").setLevel(logging.WARNING)  # Supress logs when downloading models
@@ -20,12 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def setup_ocr() -> None:
-    lang = utils.Config.ocr_rec_language
-    utils.Config.ocr_opts["lang"] = lang
-    if lang == "ch" or lang == "en":
-        utils.Config.ocr_opts["ocr_version"] = "PP-OCRv4"
-    else:
-        utils.Config.ocr_opts.pop("ocr_version", None)
+    utils.Config.ocr_opts["lang"] = utils.Config.ocr_rec_language
 
     setup_ocr_device()
     download_models()
@@ -55,13 +50,9 @@ def extract_bboxes(files: Path) -> list:
     Returns the bounding boxes of detected texted in images.
     :param files: Directory with images for detection.
     """
-    ocr_engine = PaddleOCR(**utils.Config.ocr_opts)
-    boxes = []
-    for file in files.iterdir():
-        result = ocr_engine.predict(str(file))
-        dt_polys = result[0]["dt_polys"]
-        for box in dt_polys:
-            boxes.append(box)
+    ocr_engine = TextDetection(box_thresh=utils.Config.bbox_drop_score)
+    results = ocr_engine.predict_iter([str(file) for file in files.iterdir()])
+    boxes = [box for result in results for box in result["dt_polys"]]
     return boxes
 
 

@@ -54,7 +54,8 @@ class Config:
             "ocr_gpu_max_processes", "ocr_rec_language", "text_similarity_threshold", "min_consecutive_sub_dur_ms",
             "max_consecutive_short_durs", "min_sub_duration_ms", "split_start", "split_stop", "no_of_frames",
             "sub_area_x_rel_padding", "sub_area_y_abs_padding", "use_search_area", "win_notify_sound",
-            "win_notify_loop_sound", "ocr_cpu_max_processes", "text_drop_score", "use_gpu", "line_break"]
+            "win_notify_loop_sound", "ocr_cpu_max_processes", "text_drop_score", "use_gpu", "line_break",
+            "bbox_drop_score"]
 
     # Permanent values
     subarea_height_scaler = 0.75
@@ -85,6 +86,7 @@ class Config:
     default_no_of_frames = 200
     default_sub_area_x_rel_padding = 0.85
     default_sub_area_y_abs_padding = 15
+    default_bbox_drop_score = 0.7
     default_use_search_area = True
 
     default_win_notify_sound = "Default"
@@ -95,7 +97,7 @@ class Config:
     text_extraction_batch_size = ocr_gpu_max_processes = ocr_cpu_max_processes = ocr_rec_language = text_drop_score = None
     text_similarity_threshold = min_consecutive_sub_dur_ms = max_consecutive_short_durs = min_sub_duration_ms = use_gpu = None
     split_start = split_stop = no_of_frames = sub_area_x_rel_padding = sub_area_y_abs_padding = use_search_area = None
-    win_notify_sound = win_notify_loop_sound = line_break = None
+    win_notify_sound = win_notify_loop_sound = line_break = bbox_drop_score = None
 
     def __init__(self) -> None:
         if not self.config_file.exists():
@@ -124,6 +126,7 @@ class Config:
                                          self.keys[11]: self.default_no_of_frames,
                                          self.keys[12]: self.default_sub_area_x_rel_padding,
                                          self.keys[13]: self.default_sub_area_y_abs_padding,
+                                         self.keys[21]: self.default_bbox_drop_score,
                                          self.keys[14]: self.default_use_search_area}
         self.config[self.sections[4]] = {self.keys[15]: self.default_win_notify_sound,
                                          self.keys[16]: self.default_win_notify_loop_sound}
@@ -156,6 +159,7 @@ class Config:
         cls.no_of_frames = cls.config[cls.sections[3]].getint(cls.keys[11])
         cls.sub_area_x_rel_padding = cls.config[cls.sections[3]].getfloat(cls.keys[12])
         cls.sub_area_y_abs_padding = cls.config[cls.sections[3]].getint(cls.keys[13])
+        cls.bbox_drop_score = cls.config[cls.sections[3]].getfloat(cls.keys[21])
         cls.use_search_area = cls.config[cls.sections[3]].getboolean(cls.keys[14])
 
         cls.win_notify_sound = cls.config[cls.sections[4]][cls.keys[15]]
@@ -208,6 +212,8 @@ class Config:
         cls.config[cls.sections[3]][cls.keys[12]] = str(cls.sub_area_x_rel_padding)
         cls.sub_area_y_abs_padding = kwargs.get(cls.keys[13], cls.sub_area_y_abs_padding)
         cls.config[cls.sections[3]][cls.keys[13]] = str(cls.sub_area_y_abs_padding)
+        cls.bbox_drop_score = kwargs.get(cls.keys[21], cls.bbox_drop_score)
+        cls.config[cls.sections[3]][cls.keys[21]] = str(cls.bbox_drop_score)
         cls.use_search_area = kwargs.get(cls.keys[14], cls.use_search_area)
         cls.config[cls.sections[3]][cls.keys[14]] = str(cls.use_search_area)
 

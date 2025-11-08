@@ -1039,13 +1039,25 @@ class PreferencesUI(tk.Toplevel):
             width=self.entry_size
         ).grid(column=1, row=4)
 
+        ttk.Label(subtitle_detection_frame, text="BBox Drop Score:").grid(column=0, row=5)
+        self.bbox_drop_score = tk.DoubleVar(value=utils.Config.bbox_drop_score)
+        self.bbox_drop_score.trace_add("write", self._set_reset_button)
+        ttk.Spinbox(
+            subtitle_detection_frame,
+            from_=0, to=1.0,
+            increment=0.01,
+            textvariable=self.bbox_drop_score,
+            state="readonly",
+            width=self.spinbox_size
+        ).grid(column=1, row=5)
+
         self.use_search_area = tk.BooleanVar(value=utils.Config.use_search_area)
         self.use_search_area.trace_add("write", self._set_reset_button)
         ttk.Checkbutton(
             subtitle_detection_frame,
             text='Use Default Search Area',
             variable=self.use_search_area
-        ).grid(column=0, row=5)
+        ).grid(column=0, row=6, pady=self.wgt_y_padding)
 
     def _frame_extraction_tab(self) -> None:
         """
@@ -1299,6 +1311,7 @@ class PreferencesUI(tk.Toplevel):
             utils.Config.default_no_of_frames,
             utils.Config.default_sub_area_x_rel_padding,
             utils.Config.default_sub_area_y_abs_padding,
+            utils.Config.default_bbox_drop_score,
             utils.Config.default_use_search_area,
             utils.Config.default_win_notify_sound,
             utils.Config.default_win_notify_loop_sound
@@ -1324,6 +1337,7 @@ class PreferencesUI(tk.Toplevel):
                 self.no_of_frames.get(),
                 self.sub_area_x_rel_padding.get(),
                 self.sub_area_y_abs_padding.get(),
+                self.bbox_drop_score.get(),
                 self.use_search_area.get(),
                 self.win_notify_sound.get(),
                 self.win_notify_loop_sound.get()
@@ -1388,6 +1402,7 @@ class PreferencesUI(tk.Toplevel):
         self.no_of_frames.set(utils.Config.default_no_of_frames)
         self.sub_area_x_rel_padding.set(utils.Config.default_sub_area_x_rel_padding)
         self.sub_area_y_abs_padding.set(utils.Config.default_sub_area_y_abs_padding)
+        self.bbox_drop_score.set(utils.Config.default_bbox_drop_score)
         self.use_search_area.set(utils.Config.default_use_search_area)
         # Notification settings.
         self.win_notify_sound.set(utils.Config.default_win_notify_sound)
@@ -1422,6 +1437,7 @@ class PreferencesUI(tk.Toplevel):
                     utils.Config.keys[11]: self.no_of_frames.get(),
                     utils.Config.keys[12]: self.sub_area_x_rel_padding.get(),
                     utils.Config.keys[13]: self.sub_area_y_abs_padding.get(),
+                    utils.Config.keys[21]: self.bbox_drop_score.get(),
                     utils.Config.keys[14]: self.use_search_area.get(),
                     # Notification settings.
                     utils.Config.keys[15]: self.win_notify_sound.get(),

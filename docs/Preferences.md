@@ -21,6 +21,9 @@ spans the entire width of the video. The value is relative to the width of the v
 Y Axis Padding: The y-axis padding prevents the vertical line of the boundary box from being too close to the detected
 subtitle text. This value is fixed for all video heights.
 
+BBox Drop Score: The minimum acceptable confidence score for each detected boundary box. A low score would result in a
+final detected subtitle area that is less accurate and covers areas that may not contain any subtitle text.
+
 Use Default Search Area: The default part of the video frame will be searched to detect subtitles. When unchecked the
 entire video frame is searched when detecting subtitles.
 
