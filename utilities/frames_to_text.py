@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore", "No ccache found. Please be aware that recompi
 warnings.filterwarnings("ignore", "Value do not have 'place' interface for pir graph mode", UserWarning)
 
 import paddle
-from paddleocr import PaddleOCR, TextDetection
+from .paddleocr import PaddleOCR, TextDetection
 
 logging.getLogger("paddlex").setLevel(logging.CRITICAL)
 logging.getLogger("httpx").setLevel(logging.WARNING)  # Supress logs when downloading models
