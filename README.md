@@ -42,24 +42,12 @@ installed. The program will not start without it.
 
 [Latest Version of Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-US/cpp/windows/latest-supported-vc-redist)
 
-Install packages
+**Install packages**
 
-For GPU
-
-```
-pip install paddlepaddle-gpu==3.2.1 -i https://www.paddlepaddle.org.cn/packages/stable/cu129/
-```
-
-For CPU
+This also installs all the requirements.
 
 ```
-pip install paddlepaddle==3.2.1
-```
-
-Other packages
-
-```commandline
-pip install -r requirements.txt
+pip install custom_ocr[full]@git+https://github.com/voun7/CustomPaddleOCR.git@1.0 
 ```
 
 Run `gui.py` to use Graphical interface and `main.py` to use Terminal.

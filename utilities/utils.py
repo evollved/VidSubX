@@ -1,5 +1,4 @@
 import logging
-import os
 from configparser import ConfigParser
 from os import cpu_count
 from pathlib import Path
@@ -59,10 +58,8 @@ class Config:
 
     # Permanent values
     subarea_height_scaler = 0.75
-    ocr_opts = {"use_doc_orientation_classify": False, "use_doc_unwarping": False, "use_textline_orientation": False}
     model_dir = Path.cwd() / "models"
-    model_dir.mkdir(parents=False, exist_ok=True)
-    os.environ["PADDLE_PDX_CACHE_HOME"] = str(model_dir)
+    ocr_opts = {"model_save_dir": str(model_dir)}
 
     # Default values
     default_frame_extraction_frequency = 2

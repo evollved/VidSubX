@@ -1,39 +1,36 @@
+import ctypes
 import logging
-import os
-import warnings
-from concurrent.futures import ProcessPoolExecutor, as_completed
+import site
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+
+import onnxruntime as ort
+
+ctypes.CDLL(f"{site.getsitepackages()[1]}/nvidia/cuda_nvrtc/bin/nvrtc64_120_0.dll")
+ort.preload_dlls()
+
+from custom_ocr import CustomPaddleOCR, TextDetection
 
 import utilities.utils as utils
 
-os.environ["GLOG_minloglevel"] = "2"  # Supress InitGoogleLogging logs
-warnings.filterwarnings("ignore", "No ccache found. Please be aware that recompiling", UserWarning)
-warnings.filterwarnings("ignore", "Value do not have 'place' interface for pir graph mode", UserWarning)
-
-import paddle
-from .paddleocr import PaddleOCR, TextDetection
-
-logging.getLogger("paddlex").setLevel(logging.CRITICAL)
-logging.getLogger("httpx").setLevel(logging.WARNING)  # Supress logs when downloading models
+logging.getLogger("custom_ocr").setLevel(logging.INFO)
 
 logger = logging.getLogger(__name__)
 
 
 def setup_ocr() -> None:
     utils.Config.ocr_opts["lang"] = utils.Config.ocr_rec_language
-
-    setup_ocr_device()
     download_models()
+    setup_ocr_device()
 
 
 def setup_ocr_device() -> None:
-    if utils.Config.use_gpu and paddle.device.cuda.device_count() > 0:
+    if utils.Config.use_gpu and ort.get_device() == "GPU":
         logger.debug("GPU is enabled.")
-        utils.Config.ocr_opts.pop("device", None)
-
+        utils.Config.ocr_opts["use_gpu"] = True
     else:
         logger.debug("GPU is disabled.")
-        utils.Config.ocr_opts["device"] = "cpu"
+        utils.Config.ocr_opts["use_gpu"] = False
 
 
 def download_models() -> None:
@@ -41,7 +38,7 @@ def download_models() -> None:
     Download models if dir does not exist.
     """
     logger.info("Checking for requested models...")
-    _ = PaddleOCR(**utils.Config.ocr_opts)
+    _ = CustomPaddleOCR(**utils.Config.ocr_opts)
     logger.info("")
 
 
@@ -50,21 +47,23 @@ def extract_bboxes(files: Path) -> list:
     Returns the bounding boxes of detected texted in images.
     :param files: Directory with images for detection.
     """
-    ocr_engine = TextDetection(box_thresh=utils.Config.bbox_drop_score)
-    results = ocr_engine.predict_iter([str(file) for file in files.iterdir()])
+    model_name = "PP-OCRv5_server_det"
+    det_opts = {"model_name": model_name, "box_thresh": utils.Config.bbox_drop_score} | utils.Config.ocr_opts
+    del det_opts["lang"]
+    ocr_engine = TextDetection(**det_opts)
+    results = ocr_engine.predict_iter(str(files))
     boxes = [box for result in results for box in result["dt_polys"]]
     return boxes
 
 
-def extract_text(ocr_config: dict, text_output: Path, files: list, line_sep: str) -> None:
+def extract_text(ocr_engine, text_output: Path, files: list, line_sep: str) -> None:
     """
     Extract text from a frame using ocr.
-    :param ocr_config: OCR engine configuration.
+    :param ocr_engine: OCR engine.
     :param text_output: directory for extracted texts.
     :param files: files with text for extraction.
     :param line_sep: line seperator for the text.
     """
-    ocr_engine = PaddleOCR(**ocr_config)
     for file in files:
         result = ocr_engine.predict(str(file))
         text = line_sep.join(result[0]["rec_texts"])
@@ -87,13 +86,13 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
         logger.warning(f"{prefix} process interrupted!")
         return
 
-    ocr_config = {"text_rec_score_thresh": utils.Config.text_drop_score} | utils.Config.ocr_opts
+    ocr_engine = CustomPaddleOCR(**utils.Config.ocr_opts, text_rec_score_thresh=utils.Config.text_drop_score)
     files = list(frame_output.iterdir())
     file_batches = [files[i:i + batch_size] for i in range(0, len(files), batch_size)]
     no_batches = len(file_batches)
     logger.info(f"Starting Multiprocess {prefix} from frames on {device}, Batches: {no_batches}.")
-    with ProcessPoolExecutor(max_processes) as executor:
-        futures = [executor.submit(extract_text, ocr_config, text_output, files, line_sep) for files in file_batches]
+    with ThreadPoolExecutor(max_processes) as executor:
+        futures = [executor.submit(extract_text, ocr_engine, text_output, files, line_sep) for files in file_batches]
         for i, f in enumerate(as_completed(futures)):  # as each  process completes
             f.result()  # Prevents silent bugs. Exceptions raised will be displayed.
             utils.print_progress(i, no_batches - 1, prefix)
