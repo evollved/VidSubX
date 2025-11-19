@@ -1,6 +1,5 @@
 import logging
 from configparser import ConfigParser
-from os import cpu_count
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -26,202 +25,89 @@ class Process:
         logger.debug(f"interrupt_process set to: {cls.interrupt_process}")
 
 
-def default_ocr_cpu_processes() -> int:
-    """
-    Calculates the ideal number of CPU processes to be used by the ocr.
-    """
-    # todo: complete the function
-    return cpu_count()
-
-
-def default_ocr_gpu_processes() -> int:
-    """
-    Calculates the ideal number of GPU processes to be used by the ocr.
-    """
-    # todo: complete the function
-    return cpu_count() // 2
-
-
 class Config:
-    # Config file location will always be the same regardless of which module starts the program.
-    config_file = Path(__file__).parent.parent / "config.ini"
-    config = ConfigParser()
-    config.read(config_file)
+    config_schema = {
+        "Frame Extraction": {
+            "frame_extraction_frequency": (int, 2),
+            "frame_extraction_batch_size": (int, 250),
+        },
+        "Text Extraction": {
+            "text_extraction_batch_size": (int, 350),
+            "ocr_max_processes": (int, 8),
+            "ocr_rec_language": (str, "ch"),
+            "text_drop_score": (float, 0.55),
+            "line_break": (bool, True),
+        },
+        "Subtitle Generator": {
+            "text_similarity_threshold": (float, 0.85),
+            "min_consecutive_sub_dur_ms": (float, 500.0),
+            "max_consecutive_short_durs": (int, 4),
+            "min_sub_duration_ms": (float, 120.0),
+        },
+        "Subtitle Detection": {
+            "split_start": (float, 0.25),
+            "split_stop": (float, 0.50),
+            "no_of_frames": (int, 200),
+            "sub_area_x_rel_padding": (float, 0.85),
+            "sub_area_y_abs_padding": (int, 15),
+            "bbox_drop_score": (float, 0.7),
+            "use_search_area": (bool, True),
+        },
+        "Notification": {
+            "win_notify_sound": (str, "Default"),
+            "win_notify_loop_sound": (bool, True),
+        },
+        "Models": {
+            "paddleocr_version": (str, "PP-OCRv5"),
+            "use_gpu": (bool, True),
+            "use_mobile_model": (bool, True),
+            "use_text_ori": (bool, False),
+        },
+    }
 
-    sections = ["Frame Extraction", "Text Extraction", "Subtitle Generator", "Subtitle Detection", "Notification"]
-    keys = ["frame_extraction_frequency", "frame_extraction_batch_size", "text_extraction_batch_size",
-            "ocr_gpu_max_processes", "ocr_rec_language", "text_similarity_threshold", "min_consecutive_sub_dur_ms",
-            "max_consecutive_short_durs", "min_sub_duration_ms", "split_start", "split_stop", "no_of_frames",
-            "sub_area_x_rel_padding", "sub_area_y_abs_padding", "use_search_area", "win_notify_sound",
-            "win_notify_loop_sound", "ocr_cpu_max_processes", "text_drop_score", "use_gpu", "line_break",
-            "bbox_drop_score"]
+    def __init__(self):
+        # Permanent values
+        self.subarea_height_scaler = 0.75
+        self.model_dir = Path.cwd() / "models"
+        self.ocr_opts = {"model_save_dir": str(self.model_dir)}
 
-    # Permanent values
-    subarea_height_scaler = 0.75
-    model_dir = Path.cwd() / "models"
-    ocr_opts = {"model_save_dir": str(model_dir)}
-
-    # Default values
-    default_frame_extraction_frequency = 2
-    default_frame_extraction_batch_size = 250
-
-    default_text_extraction_batch_size = 350
-    default_ocr_gpu_max_processes = default_ocr_gpu_processes()
-    default_ocr_cpu_max_processes = default_ocr_cpu_processes()
-    default_ocr_rec_language = "ch"
-    default_text_drop_score = 0.55
-    default_line_break = True
-
-    default_text_similarity_threshold = 0.85
-    default_min_consecutive_sub_dur_ms = 500.0
-    default_max_consecutive_short_durs = 4
-    default_min_sub_duration_ms = 120.0
-    default_use_gpu = True
-
-    default_split_start = 0.25
-    default_split_stop = 0.5
-    default_no_of_frames = 200
-    default_sub_area_x_rel_padding = 0.85
-    default_sub_area_y_abs_padding = 15
-    default_bbox_drop_score = 0.7
-    default_use_search_area = True
-
-    default_win_notify_sound = "Default"
-    default_win_notify_loop_sound = True
-
-    # Initial values
-    frame_extraction_frequency = frame_extraction_batch_size = None
-    text_extraction_batch_size = ocr_gpu_max_processes = ocr_cpu_max_processes = ocr_rec_language = text_drop_score = None
-    text_similarity_threshold = min_consecutive_sub_dur_ms = max_consecutive_short_durs = min_sub_duration_ms = use_gpu = None
-    split_start = split_stop = no_of_frames = sub_area_x_rel_padding = sub_area_y_abs_padding = use_search_area = None
-    win_notify_sound = win_notify_loop_sound = line_break = bbox_drop_score = None
-
-    def __init__(self) -> None:
-        if not self.config_file.exists():
+        self.path = Path(__file__).parent.parent / "config.ini"
+        self.config = ConfigParser()
+        if not self.path.exists():
             self.create_default_config_file()
+
+        self.config.read(self.path)
         self.load_config()
 
-    def create_default_config_file(self) -> None:
-        """
-        Creates a new config file with the default values.
-        """
-        self.config[self.sections[0]] = {self.keys[0]: str(self.default_frame_extraction_frequency),
-                                         self.keys[1]: self.default_frame_extraction_batch_size}
-        self.config[self.sections[1]] = {self.keys[2]: self.default_text_extraction_batch_size,
-                                         self.keys[3]: self.default_ocr_gpu_max_processes,
-                                         self.keys[17]: self.default_ocr_cpu_max_processes,
-                                         self.keys[4]: self.default_ocr_rec_language,
-                                         self.keys[18]: self.default_text_drop_score,
-                                         self.keys[20]: self.default_line_break}
-        self.config[self.sections[2]] = {self.keys[5]: str(self.default_text_similarity_threshold),
-                                         self.keys[6]: self.default_min_consecutive_sub_dur_ms,
-                                         self.keys[7]: self.default_max_consecutive_short_durs,
-                                         self.keys[8]: self.default_min_sub_duration_ms,
-                                         self.keys[19]: self.default_use_gpu}
-        self.config[self.sections[3]] = {self.keys[9]: str(self.default_split_start),
-                                         self.keys[10]: self.default_split_stop,
-                                         self.keys[11]: self.default_no_of_frames,
-                                         self.keys[12]: self.default_sub_area_x_rel_padding,
-                                         self.keys[13]: self.default_sub_area_y_abs_padding,
-                                         self.keys[21]: self.default_bbox_drop_score,
-                                         self.keys[14]: self.default_use_search_area}
-        self.config[self.sections[4]] = {self.keys[15]: self.default_win_notify_sound,
-                                         self.keys[16]: self.default_win_notify_loop_sound}
-        with open(self.config_file, 'w') as configfile:
-            self.config.write(configfile)
+    def create_default_config_file(self):
+        for section, data in self.config_schema.items():
+            self.config[section] = {k: str(default) for k, (_, default) in data.items()}
 
-    @classmethod
-    def load_config(cls) -> None:
-        """
-        Parse the values of the config file into memory.
-        """
-        cls.frame_extraction_frequency = cls.config[cls.sections[0]].getint(cls.keys[0])
-        cls.frame_extraction_batch_size = cls.config[cls.sections[0]].getint(cls.keys[1])
+        with open(self.path, "w") as f:
+            self.config.write(f)
 
-        cls.text_extraction_batch_size = cls.config[cls.sections[1]].getint(cls.keys[2])
-        cls.ocr_gpu_max_processes = cls.config[cls.sections[1]].getint(cls.keys[3])
-        cls.ocr_cpu_max_processes = cls.config[cls.sections[1]].getint(cls.keys[17])
-        cls.ocr_rec_language = cls.config[cls.sections[1]][cls.keys[4]]
-        cls.text_drop_score = cls.config[cls.sections[1]].getfloat(cls.keys[18])
-        cls.line_break = cls.config[cls.sections[1]].getboolean(cls.keys[20])
+    @staticmethod
+    def _convert(value: str, typ):
+        if typ is bool:
+            return value.lower() in ("1", "true", "yes", "on")
+        return typ(value)
 
-        cls.text_similarity_threshold = cls.config[cls.sections[2]].getfloat(cls.keys[5])
-        cls.min_consecutive_sub_dur_ms = cls.config[cls.sections[2]].getfloat(cls.keys[6])
-        cls.max_consecutive_short_durs = cls.config[cls.sections[2]].getint(cls.keys[7])
-        cls.min_sub_duration_ms = cls.config[cls.sections[2]].getfloat(cls.keys[8])
-        cls.use_gpu = cls.config[cls.sections[2]].getboolean(cls.keys[19])
+    def load_config(self):
+        for section, data in self.config_schema.items():
+            for key, (typ, default) in data.items():
+                raw = self.config[section].get(key, str(default))
+                setattr(self, key, self._convert(raw, typ))
 
-        cls.split_start = cls.config[cls.sections[3]].getfloat(cls.keys[9])
-        cls.split_stop = cls.config[cls.sections[3]].getfloat(cls.keys[10])
-        cls.no_of_frames = cls.config[cls.sections[3]].getint(cls.keys[11])
-        cls.sub_area_x_rel_padding = cls.config[cls.sections[3]].getfloat(cls.keys[12])
-        cls.sub_area_y_abs_padding = cls.config[cls.sections[3]].getint(cls.keys[13])
-        cls.bbox_drop_score = cls.config[cls.sections[3]].getfloat(cls.keys[21])
-        cls.use_search_area = cls.config[cls.sections[3]].getboolean(cls.keys[14])
+    def set_config(self, **kwargs):
+        for key, val in kwargs.items():
+            for section, data in self.config_schema.items():
+                if key in data:
+                    setattr(self, key, val)
+                    self.config[section][key] = str(val)
+                    break
 
-        cls.win_notify_sound = cls.config[cls.sections[4]][cls.keys[15]]
-        cls.win_notify_loop_sound = cls.config[cls.sections[4]].getboolean(cls.keys[16])
-
-    @classmethod
-    def set_config(cls, **kwargs: int | float | str | bool) -> None:
-        """
-        Write new configuration values into memory & file.
-        Config values must be strings.
-        """
-        # Write the new config value into the class variable (memory).
-        cls.frame_extraction_frequency = kwargs.get(cls.keys[0], cls.frame_extraction_frequency)
-        # Write the value of the class variable into to the config parser (file).
-        cls.config[cls.sections[0]][cls.keys[0]] = str(cls.frame_extraction_frequency)
-        cls.frame_extraction_batch_size = kwargs.get(cls.keys[1], cls.frame_extraction_batch_size)
-        cls.config[cls.sections[0]][cls.keys[1]] = str(cls.frame_extraction_batch_size)
-
-        cls.text_extraction_batch_size = kwargs.get(cls.keys[2], cls.text_extraction_batch_size)
-        cls.config[cls.sections[1]][cls.keys[2]] = str(cls.text_extraction_batch_size)
-        cls.ocr_gpu_max_processes = kwargs.get(cls.keys[3], cls.ocr_gpu_max_processes)
-        cls.config[cls.sections[1]][cls.keys[3]] = str(cls.ocr_gpu_max_processes)
-        cls.ocr_cpu_max_processes = kwargs.get(cls.keys[17], cls.ocr_cpu_max_processes)
-        cls.config[cls.sections[1]][cls.keys[17]] = str(cls.ocr_cpu_max_processes)
-        cls.ocr_rec_language = kwargs.get(cls.keys[4], cls.ocr_rec_language)
-        cls.config[cls.sections[1]][cls.keys[4]] = cls.ocr_rec_language
-        cls.text_drop_score = kwargs.get(cls.keys[18], cls.text_drop_score)
-        cls.config[cls.sections[1]][cls.keys[18]] = str(cls.text_drop_score)
-        cls.line_break = kwargs.get(cls.keys[20], cls.line_break)
-        cls.config[cls.sections[1]][cls.keys[20]] = str(cls.line_break)
-
-        cls.text_similarity_threshold = kwargs.get(cls.keys[5], cls.text_similarity_threshold)
-        cls.config[cls.sections[2]][cls.keys[5]] = str(cls.text_similarity_threshold)
-        cls.min_consecutive_sub_dur_ms = kwargs.get(cls.keys[6], cls.min_consecutive_sub_dur_ms)
-        cls.config[cls.sections[2]][cls.keys[6]] = str(cls.min_consecutive_sub_dur_ms)
-        cls.max_consecutive_short_durs = kwargs.get(cls.keys[7], cls.max_consecutive_short_durs)
-        cls.config[cls.sections[2]][cls.keys[7]] = str(cls.max_consecutive_short_durs)
-        cls.min_sub_duration_ms = kwargs.get(cls.keys[8], cls.min_sub_duration_ms)
-        cls.config[cls.sections[2]][cls.keys[8]] = str(cls.min_sub_duration_ms)
-        cls.use_gpu = kwargs.get(cls.keys[19], cls.use_gpu)
-        cls.config[cls.sections[2]][cls.keys[19]] = str(cls.use_gpu)
-
-        cls.split_start = kwargs.get(cls.keys[9], cls.split_start)
-        cls.config[cls.sections[3]][cls.keys[9]] = str(cls.split_start)
-        cls.split_stop = kwargs.get(cls.keys[10], cls.split_stop)
-        cls.config[cls.sections[3]][cls.keys[10]] = str(cls.split_stop)
-        cls.no_of_frames = kwargs.get(cls.keys[11], cls.no_of_frames)
-        cls.config[cls.sections[3]][cls.keys[11]] = str(cls.no_of_frames)
-        cls.sub_area_x_rel_padding = kwargs.get(cls.keys[12], cls.sub_area_x_rel_padding)
-        cls.config[cls.sections[3]][cls.keys[12]] = str(cls.sub_area_x_rel_padding)
-        cls.sub_area_y_abs_padding = kwargs.get(cls.keys[13], cls.sub_area_y_abs_padding)
-        cls.config[cls.sections[3]][cls.keys[13]] = str(cls.sub_area_y_abs_padding)
-        cls.bbox_drop_score = kwargs.get(cls.keys[21], cls.bbox_drop_score)
-        cls.config[cls.sections[3]][cls.keys[21]] = str(cls.bbox_drop_score)
-        cls.use_search_area = kwargs.get(cls.keys[14], cls.use_search_area)
-        cls.config[cls.sections[3]][cls.keys[14]] = str(cls.use_search_area)
-
-        cls.win_notify_sound = kwargs.get(cls.keys[15], cls.win_notify_sound)
-        cls.config[cls.sections[4]][cls.keys[15]] = cls.win_notify_sound
-        cls.win_notify_loop_sound = kwargs.get(cls.keys[16], cls.win_notify_loop_sound)
-        cls.config[cls.sections[4]][cls.keys[16]] = str(cls.win_notify_loop_sound)
-
-        with open(cls.config_file, 'w') as configfile:
-            cls.config.write(configfile)
-        logger.debug("Configuration values changed!")
+        with open(self.path, "w") as f:
+            self.config.write(f)
 
 
 def print_progress(iteration: int, total: int, prefix: str = '', suffix: str = 'Complete', decimals: int = 3,
@@ -251,4 +137,4 @@ def print_progress(iteration: int, total: int, prefix: str = '', suffix: str = '
 if __name__ == '__main__':
     pass
 else:
-    Config()
+    CONFIG = Config()

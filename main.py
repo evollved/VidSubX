@@ -34,11 +34,11 @@ class SubtitleDetector:
         Extract frames from default subtitle area of video that should contain subtitles.
         """
         # Decimal used to signify the relative position to choose start point to search for frames.
-        split_start = utils.Config.split_start
+        split_start = utils.CONFIG.split_start
         # Decimal used to signify the relative position to choose end point to search for frames.
-        split_stop = utils.Config.split_stop
+        split_stop = utils.CONFIG.split_stop
         # How many frames to look through after splits.
-        no_of_frames = utils.Config.no_of_frames
+        no_of_frames = utils.CONFIG.no_of_frames
 
         relative_start, relative_stop = int(self.frame_total * split_start), int(self.frame_total * split_stop)
         logger.debug(f"Relative start frame = {relative_start}, Relative stop frame = {relative_stop}")
@@ -72,7 +72,7 @@ class SubtitleDetector:
         Detected texts default x boundary will be used if larger than the relative padding.
         The y paddings are absolute to the height of the video. All resolutions will have the same y paddings.
         """
-        x_padding, y_padding = utils.Config.sub_area_x_rel_padding, utils.Config.sub_area_y_abs_padding
+        x_padding, y_padding = utils.CONFIG.sub_area_x_rel_padding, utils.CONFIG.sub_area_y_abs_padding
         relative_x_padding = int(self.frame_width * x_padding)
         rel_top_left_x, rel_bottom_right_x = self.frame_width - relative_x_padding, relative_x_padding
 
@@ -88,7 +88,7 @@ class SubtitleDetector:
         Reposition the sub area that was changed when using the default subtitle area to detect texts bbox.
         """
         if self.use_search_area:
-            y = int(self.frame_height * utils.Config.subarea_height_scaler)
+            y = int(self.frame_height * utils.CONFIG.subarea_height_scaler)
             top_left = top_left[0], top_left[1] + y
             bottom_right = bottom_right[0], bottom_right[1] + y
             return top_left, bottom_right
@@ -175,7 +175,7 @@ class SubtitleExtractor:
         Returns a default subtitle area that can be used if no subtitle is given.
         :return: Position of subtitle relative to the resolution of the video. x2 = width and y2 = height
         """
-        x1, y1, x2, y2 = 0, int(frame_height * utils.Config.subarea_height_scaler), frame_width, frame_height
+        x1, y1, x2, y2 = 0, int(frame_height * utils.CONFIG.subarea_height_scaler), frame_width, frame_height
         return x1, y1, x2, y2
 
     def frame_no_to_duration(self, frame_no: float | int, fps: float | int) -> str:
@@ -251,7 +251,7 @@ class SubtitleExtractor:
         The text that has the longest duration becomes the text for all similar texts.
         """
         logger.debug("Merging adjacent similar texts")
-        similarity_threshold = utils.Config.text_similarity_threshold  # Cut off point to determine similarity.
+        similarity_threshold = utils.CONFIG.text_similarity_threshold  # Cut off point to determine similarity.
         new_subtitle_dict, no_of_keys = {}, len(self.subtitle_texts)
         starting_key = starting_key_txt = starting_key_dur = None
         for index, (key1, key2) in enumerate(pairwise(self.subtitle_texts.items()), start=2):
@@ -299,9 +299,9 @@ class SubtitleExtractor:
         """
         logger.debug("Removing short duration consecutive subs")
         # Minimum allowed consecutive duration in milliseconds.
-        min_consecutive_sub_dur = utils.Config.min_consecutive_sub_dur_ms
+        min_consecutive_sub_dur = utils.CONFIG.min_consecutive_sub_dur_ms
         # Maximum allowed number of short durations in a row.
-        max_consecutive_short_durs = utils.Config.max_consecutive_short_durs
+        max_consecutive_short_durs = utils.CONFIG.max_consecutive_short_durs
 
         keys_for_deletion, short_dur_keys, no_of_keys = set(), set(), len(self.subtitle_texts)
         for index, (dur_1, dur_2) in enumerate(pairwise(self.subtitle_texts), start=2):
@@ -325,7 +325,7 @@ class SubtitleExtractor:
         """
         logger.debug("Removing short duration subs")
         # Minimum allowed time in milliseconds.
-        min_sub_duration = utils.Config.min_sub_duration_ms
+        min_sub_duration = utils.CONFIG.min_sub_duration_ms
         short_dur_keys = set()
         for ms_duration in self.subtitle_texts:
             duration = self.name_to_duration(ms_duration)

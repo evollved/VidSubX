@@ -19,18 +19,18 @@ logger = logging.getLogger(__name__)
 
 
 def setup_ocr() -> None:
-    utils.Config.ocr_opts["lang"] = utils.Config.ocr_rec_language
+    utils.CONFIG.ocr_opts["lang"] = utils.CONFIG.ocr_rec_language
     download_models()
     setup_ocr_device()
 
 
 def setup_ocr_device() -> None:
-    if utils.Config.use_gpu and ort.get_device() == "GPU":
+    if utils.CONFIG.use_gpu and ort.get_device() == "GPU":
         logger.debug("GPU is enabled.")
-        utils.Config.ocr_opts["use_gpu"] = True
+        utils.CONFIG.ocr_opts["use_gpu"] = True
     else:
         logger.debug("GPU is disabled.")
-        utils.Config.ocr_opts["use_gpu"] = False
+        utils.CONFIG.ocr_opts["use_gpu"] = False
 
 
 def download_models() -> None:
@@ -38,7 +38,7 @@ def download_models() -> None:
     Download models if dir does not exist.
     """
     logger.info("Checking for requested models...")
-    _ = CustomPaddleOCR(**utils.Config.ocr_opts)
+    _ = CustomPaddleOCR(**utils.CONFIG.ocr_opts)
     logger.info("")
 
 
@@ -48,7 +48,7 @@ def extract_bboxes(files: Path) -> list:
     :param files: Directory with images for detection.
     """
     model_name = "PP-OCRv5_server_det"
-    det_opts = {"model_name": model_name, "box_thresh": utils.Config.bbox_drop_score} | utils.Config.ocr_opts
+    det_opts = {"model_name": model_name, "box_thresh": utils.CONFIG.bbox_drop_score} | utils.CONFIG.ocr_opts
     del det_opts["lang"]
     ocr_engine = TextDetection(**det_opts)
     results = ocr_engine.predict_iter(str(files))
@@ -77,16 +77,16 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     :param frame_output: directory of the frames
     :param text_output: directory for extracted texts
     """
-    batch_size = utils.Config.text_extraction_batch_size  # Size of files given to each processor.
-    prefix, device = "Text Extraction", utils.Config.ocr_opts.get("device", "gpu").upper()
-    max_processes = utils.Config.ocr_cpu_max_processes if device == "CPU" else utils.Config.ocr_gpu_max_processes
-    line_sep = "\n" if utils.Config.line_break else " "
+    batch_size = utils.CONFIG.text_extraction_batch_size  # Size of files given to each processor.
+    prefix, device = "Text Extraction", utils.CONFIG.ocr_opts.get("device", "gpu").upper()
+    max_processes = utils.CONFIG.ocr_max_processes if device == "CPU" else utils.CONFIG.use_text_ori
+    line_sep = "\n" if utils.CONFIG.line_break else " "
 
     if utils.Process.interrupt_process:  # Cancel if process has been cancelled by gui.
         logger.warning(f"{prefix} process interrupted!")
         return
 
-    ocr_engine = CustomPaddleOCR(**utils.Config.ocr_opts, text_rec_score_thresh=utils.Config.text_drop_score)
+    ocr_engine = CustomPaddleOCR(**utils.CONFIG.ocr_opts, text_rec_score_thresh=utils.CONFIG.text_drop_score)
     files = list(frame_output.iterdir())
     file_batches = [files[i:i + batch_size] for i in range(0, len(files), batch_size)]
     no_batches = len(file_batches)

@@ -65,8 +65,8 @@ def video_to_frames(video_path: str, frames_dir: Path, key_area: tuple | None, s
     :param start_frame: The frame where image extractions from video starts.
     :param stop_frame: The frame where image extractions from video stops.
     """
-    every = utils.Config.frame_extraction_frequency  # extract every this many frames.
-    batch_size = utils.Config.frame_extraction_batch_size
+    every = utils.CONFIG.frame_extraction_frequency  # extract every this many frames.
+    batch_size = utils.CONFIG.frame_extraction_batch_size
     prefix = "Frame Extraction"
     if utils.Process.interrupt_process:  # cancel if process has been cancelled by gui.
         logger.warning(f"{prefix} process interrupted!")
