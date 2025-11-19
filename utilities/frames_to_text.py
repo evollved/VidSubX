@@ -47,9 +47,10 @@ def extract_bboxes(files: Path) -> list:
     Returns the bounding boxes of detected texted in images.
     :param files: Directory with images for detection.
     """
-    model_name = "PP-OCRv5_server_det"
+    model_name = f"{utils.CONFIG.paddleocr_version}_{'mobile' if utils.CONFIG.use_mobile_model else 'server'}_det"
     det_opts = {"model_name": model_name, "box_thresh": utils.CONFIG.bbox_drop_score} | utils.CONFIG.ocr_opts
     del det_opts["lang"]
+    logger.debug(f"TextDetection config: {det_opts}")
     ocr_engine = TextDetection(**det_opts)
     results = ocr_engine.predict_iter(str(files))
     boxes = [box for result in results for box in result["dt_polys"]]
@@ -79,7 +80,6 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     """
     batch_size = utils.CONFIG.text_extraction_batch_size  # Size of files given to each processor.
     prefix, device = "Text Extraction", utils.CONFIG.ocr_opts.get("device", "gpu").upper()
-    max_processes = utils.CONFIG.ocr_max_processes if device == "CPU" else utils.CONFIG.use_text_ori
     line_sep = "\n" if utils.CONFIG.line_break else " "
 
     if utils.Process.interrupt_process:  # Cancel if process has been cancelled by gui.
@@ -91,7 +91,7 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     file_batches = [files[i:i + batch_size] for i in range(0, len(files), batch_size)]
     no_batches = len(file_batches)
     logger.info(f"Starting Multiprocess {prefix} from frames on {device}, Batches: {no_batches}.")
-    with ThreadPoolExecutor(max_processes) as executor:
+    with ThreadPoolExecutor(utils.CONFIG.ocr_max_processes) as executor:
         futures = [executor.submit(extract_text, ocr_engine, text_output, files, line_sep) for files in file_batches]
         for i, f in enumerate(as_completed(futures)):  # as each  process completes
             f.result()  # Prevents silent bugs. Exceptions raised will be displayed.

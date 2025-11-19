@@ -949,6 +949,7 @@ class PreferencesUI(tk.Toplevel):
         self._text_extraction_tab()
         self._subtitle_generator_tab()
         self._notifications_tab()
+        self._models_tab()
 
         # Add buttons to window.
         button_frame = ttk.Frame(main_frame)
@@ -1227,14 +1228,6 @@ class PreferencesUI(tk.Toplevel):
             width=self.entry_size
         ).grid(column=1, row=3)
 
-        self.use_gpu = tk.BooleanVar(value=utils.CONFIG.use_gpu)
-        self.use_gpu.trace_add("write", self._set_reset_button)
-        ttk.Checkbutton(
-            subtitle_generator_frame,
-            text='Use GPU if available',
-            variable=self.use_gpu
-        ).grid(column=0, row=4, pady=self.wgt_y_padding)
-
     def _notifications_tab(self) -> None:
         """
         Choose notification tab depending on platform os.
@@ -1275,6 +1268,49 @@ class PreferencesUI(tk.Toplevel):
             text='Loop Notification Sound',
             variable=self.win_notify_loop_sound
         ).grid(column=1, row=1)
+
+    def _models_tab(self) -> None:
+        models_frame = ttk.Frame(self.notebook_tab)
+        models_frame.grid(column=0, row=0)
+        models_frame.grid_columnconfigure(1, weight=1)
+        self.notebook_tab.add(models_frame, text=" Models ")
+
+        ttk.Label(models_frame, text="PaddleOCR Version:").grid(
+            column=0, row=0, padx=self.wgt_x_padding, pady=self.wgt_y_padding
+        )
+        self.paddleocr_version = tk.StringVar(value=utils.CONFIG.paddleocr_version)
+        self.paddleocr_version.trace_add("write", self._set_reset_button)
+        ttk.Combobox(
+            models_frame,
+            textvariable=self.paddleocr_version,
+            values=["PP-OCRv3", "PP-OCRv4", "PP-OCRv5"],
+            state="readonly",
+            width=self.combobox_size
+        ).grid(column=1, row=0)
+
+        self.use_gpu = tk.BooleanVar(value=utils.CONFIG.use_gpu)
+        self.use_gpu.trace_add("write", self._set_reset_button)
+        ttk.Checkbutton(
+            models_frame,
+            text='Use GPU If Available',
+            variable=self.use_gpu
+        ).grid(column=0, row=1)
+
+        self.use_mobile_model = tk.BooleanVar(value=utils.CONFIG.use_mobile_model)
+        self.use_mobile_model.trace_add("write", self._set_reset_button)
+        ttk.Checkbutton(
+            models_frame,
+            text='Use Mobile Model',
+            variable=self.use_mobile_model
+        ).grid(column=1, row=1)
+
+        self.use_text_ori = tk.BooleanVar(value=utils.CONFIG.use_text_ori)
+        self.use_text_ori.trace_add("write", self._set_reset_button)
+        ttk.Checkbutton(
+            models_frame,
+            text='Use Text Line Orientation Model',
+            variable=self.use_text_ori
+        ).grid(column=1, row=2, pady=self.wgt_y_padding)
 
     def _set_reset_button(self, *args) -> None:
         """
