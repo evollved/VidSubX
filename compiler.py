@@ -33,18 +33,17 @@ def uninstall_package(name: str) -> None:
 
 
 def download_all_models() -> None:
-    from paddleocr.paddleocr import MODEL_URLS, DEFAULT_OCR_MODEL_VERSION, PaddleOCR
+    from custom_ocr import CustomPaddleOCR
 
-    languages = MODEL_URLS['OCR'][DEFAULT_OCR_MODEL_VERSION]['rec'].keys()
+    languages = []  # todo: ocr version and type should be used
     for lang in languages:
         print(f"\nChecking for {lang} language models...")
-        utils.Config.ocr_opts["base_dir"] = utils.Config.model_dir
-        _ = PaddleOCR(use_gpu=False, lang=lang, **utils.Config.ocr_opts)
+        _ = CustomPaddleOCR(lang=lang, **utils.CONFIG.ocr_opts)
 
 
 def remove_non_onnx_models() -> None:
     print("\nRemoving all non Onnx Models...")
-    for file in utils.Config.model_dir.rglob("*.*"):
+    for file in utils.CONFIG.model_dir.rglob("*.*"):
         if not file.is_dir() and file.name != "model.onnx":
             print(f"Removing file: {file}")
             file.unlink()

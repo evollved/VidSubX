@@ -2,11 +2,12 @@ import ctypes
 import logging
 import platform
 import sys
-import time
 import tkinter as tk
+from datetime import timedelta
 from os import cpu_count
 from pathlib import Path
 from threading import Thread
+from time import perf_counter
 from tkinter import ttk, filedialog, messagebox
 
 import cv2 as cv
@@ -121,7 +122,7 @@ class CustomMessageBox(tk.Toplevel):
 
 
 class SubtitleExtractorGUI:
-    def __init__(self, root: ttk) -> None:
+    def __init__(self, root) -> None:
         self.root = root
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
         self._create_layout()
@@ -346,7 +347,7 @@ class SubtitleExtractorGUI:
         return rescale_factor
 
     def rescale(self, frame: np.ndarray = None, subtitle_area: tuple = None, resolution: tuple = None,
-                scale: float = None) -> np.ndarray | tuple:
+                scale: float = None) -> np.ndarray | tuple | None:
         """
         Method to rescale any frame, subtitle area and resolution.
         """
@@ -363,6 +364,7 @@ class SubtitleExtractorGUI:
             frame_width = frame_width * scale
             frame_height = frame_height * scale
             return frame_width, frame_height
+        return None
 
     def _set_canvas(self) -> None:
         """
@@ -718,10 +720,10 @@ class SubtitleExtractorGUI:
         """
         Overwrite progress bar text in text widget, if detected in present and previous line.
         """
-        if " |#" in text or "-| " in text or "it/s" in text:
+        if " |#" in text or "-| " in text:
             start, stop = 'end - 1 lines', 'end - 1 lines lineend'
             previous_line = self.text_output_widget.get(start, stop)
-            if " |#" in previous_line or "-| " in previous_line or "it/s" in previous_line:
+            if " |#" in previous_line or "-| " in previous_line:
                 self.clear_output(start, stop)
 
     def write_to_output(self, text: str) -> None:
@@ -734,15 +736,6 @@ class SubtitleExtractorGUI:
         self.text_output_widget.insert("end", text)
         self.text_output_widget.see("end")
         self.text_output_widget.configure(state="disabled")
-
-    def gui_setup_ocr(self) -> None:
-        """
-        Modify the gui to properly display the download of the models. This method should not be run from main thread.
-        tqdm uses stderr so the download progress texts are rerouted.
-        """
-        sys.stderr.write = self.write_to_output
-        setup_ocr()  # if lang changes, the new lang model will be downloaded.
-        sys.stderr.write = self.error_message_handler
 
     def send_notification(self, title: str, message: str = "") -> None:
         operating_system = platform.system()
@@ -764,11 +757,11 @@ class SubtitleExtractorGUI:
         Detect sub area of videos in the queue and set as new sub area.
         """
         logger.info("Detecting subtitle area in video(s)...")
-        start, use_search_area = time.perf_counter(), utils.CONFIG.use_search_area
+        use_search_area = utils.CONFIG.use_search_area
         self.thread_running = True
         try:
-            self.gui_setup_ocr()
-            start = time.perf_counter()
+            setup_ocr()
+            start_time = perf_counter()
             for video in self.video_queue.keys():
                 if utils.Process.interrupt_process:
                     logger.warning("Process interrupted\n")
@@ -780,14 +773,14 @@ class SubtitleExtractorGUI:
                 self.video_queue[video][0] = new_sub_area
         except Exception as error:
             logger.exception(f"\nAn error occurred while detecting subtitles! \nError: {error}")
+            start_time = perf_counter()
         self.thread_running = False
         self._stop_sub_detection_process()
         self.current_sub_area = list(self.video_queue.values())[self._video_indexer()[0]][0]
         self._draw_current_subtitle_area()
-        end = time.perf_counter()
-        completion_message = f"Done detecting subtitle(s)! Total time: {round(end - start)}s"
-        self.send_notification("Subtitle Detection Completed!", completion_message)
-        logger.info(f"{completion_message}\n")
+        done_notif = f"Done detecting subtitle(s)! Duration: {timedelta(seconds=round(perf_counter() - start_time))}"
+        self.send_notification("Subtitle Detection Completed!", done_notif)
+        logger.info(f"{done_notif}\n")
 
     def _stop_sub_detection_process(self) -> None:
         """
@@ -818,7 +811,7 @@ class SubtitleExtractorGUI:
         logger.info(f"Subtitle Language: {utils.CONFIG.ocr_rec_language}\n")
         self.thread_running = True
         try:
-            self.gui_setup_ocr()
+            setup_ocr()
             for video, sub_info in self.video_queue.items():
                 sub_area, start_frame, stop_frame = sub_info[0], sub_info[1], sub_info[2]
                 start_frame = int(start_frame) if start_frame else start_frame
