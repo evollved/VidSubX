@@ -1,5 +1,9 @@
+import json
 import logging
+import platform
+import subprocess
 from configparser import ConfigParser
+from functools import cache
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -25,7 +29,23 @@ class Process:
         logger.debug(f"interrupt_process set to: {cls.interrupt_process}")
 
 
+@cache
+def get_cpu_info() -> tuple:
+    if platform.system() == "Windows":
+        cmd = [
+            "powershell",
+            "-Command",
+            "(Get-CimInstance Win32_Processor | Select-Object -First 1 NumberOfCores, NumberOfLogicalProcessors | ConvertTo-Json)"
+        ]
+        output = subprocess.run(cmd, capture_output=True).stdout.decode()
+        data = json.loads(output)
+        return data["NumberOfCores"], data["NumberOfLogicalProcessors"]
+    else:
+        raise RuntimeError("Unsupported OS")
+
+
 class Config:
+    physical_cores = get_cpu_info()[0]
     config_schema = {
         "Frame Extraction": {
             "frame_extraction_frequency": (int, 2),
@@ -33,7 +53,6 @@ class Config:
         },
         "Text Extraction": {
             "text_extraction_batch_size": (int, 350),
-            "ocr_max_processes": (int, 8),
             "ocr_rec_language": (str, "ch"),
             "text_drop_score": (float, 0.55),
             "line_break": (bool, True),
@@ -65,7 +84,7 @@ class Config:
         },
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Permanent values
         self.subarea_height_scaler = 0.75
         self.model_dir = Path.cwd() / "models"
@@ -79,7 +98,7 @@ class Config:
         self.config.read(self.path)
         self.load_config()
 
-    def create_default_config_file(self):
+    def create_default_config_file(self) -> None:
         for section, data in self.config_schema.items():
             self.config[section] = {k: str(default) for k, (_, default) in data.items()}
 
@@ -92,13 +111,13 @@ class Config:
             return value.lower() in ("1", "true", "yes", "on")
         return typ(value)
 
-    def load_config(self):
+    def load_config(self) -> None:
         for section, data in self.config_schema.items():
             for key, (typ, default) in data.items():
                 raw = self.config[section].get(key, str(default))
                 setattr(self, key, self._convert(raw, typ))
 
-    def set_config(self, **kwargs):
+    def set_config(self, **kwargs) -> None:
         for key, val in kwargs.items():
             for section, data in self.config_schema.items():
                 if key in data:
@@ -121,20 +140,16 @@ def print_progress(iteration: int, total: int, prefix: str = '', suffix: str = '
     :param decimals: positive number of decimals in percent complete
     :param bar_length: character length of bar
     """
-    if not total:  # prevent error if total is zero.
+    if total == 0:
         return
 
-    format_str = "{0:." + str(decimals) + "f}"  # format the % done number string
-    percents = format_str.format(100 * (iteration / float(total)))  # calculate the % done
-    filled_length = int(round(bar_length * iteration / float(total)))  # calculate the filled bar length
-    bar = '#' * filled_length + '-' * (bar_length - filled_length)  # generate the bar string
-    print(f"\r{prefix} |{bar}| {percents}% {suffix}", end='', flush=True)  # prints progress on the same line
+    percent = f"{(iteration / total) * 100:.{decimals}f}"
+    filled = int(bar_length * iteration / total)
+    bar = '#' * filled + '-' * (bar_length - filled)
+    print(f"\r{prefix} |{bar}| {percent}% {suffix}", end='', flush=True)  # prints progress on the same line
 
-    if "100.0" in percents:  # prevent next line from joining previous line
+    if iteration >= total:
         print()
 
 
-if __name__ == '__main__':
-    pass
-else:
-    CONFIG = Config()
+CONFIG = Config()
