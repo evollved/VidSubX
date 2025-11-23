@@ -31,10 +31,10 @@ def setup_ocr_device() -> None:
     sess_opt = ort.SessionOptions()
     if utils.CONFIG.use_gpu and "CUDAExecutionProvider" in ort.get_available_providers():
         utils.CONFIG.ocr_opts["use_gpu"] = True
-        sess_opt.intra_op_num_threads = utils.CONFIG.onnx_gpu_intra_threads
+        sess_opt.intra_op_num_threads = utils.CONFIG.gpu_onnx_intra_threads
     else:
         utils.CONFIG.ocr_opts["use_gpu"] = False
-        sess_opt.intra_op_num_threads = utils.CONFIG.onnx_cpu_intra_threads
+        sess_opt.intra_op_num_threads = utils.CONFIG.cpu_onnx_intra_threads
     utils.CONFIG.ocr_opts["onnx_sess_options"] = sess_opt
 
 
@@ -84,7 +84,7 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     """
     batch_size = utils.CONFIG.text_extraction_batch_size  # Size of files given to each processor.
     prefix, device = "Text Extraction", "GPU" if utils.CONFIG.ocr_opts["use_gpu"] else "CPU"
-    no_processes = utils.CONFIG.ocr_gpu_max_processes if device == "GPU" else utils.CONFIG.ocr_cpu_max_processes
+    no_processes = utils.CONFIG.gpu_ocr_processes if device == "GPU" else utils.CONFIG.cpu_ocr_processes
     line_sep = "\n" if utils.CONFIG.line_break else " "
 
     if utils.Process.interrupt_process:  # Cancel if process has been cancelled by gui.

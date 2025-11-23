@@ -46,15 +46,18 @@ def get_cpu_info() -> tuple:
 
 class Config:
     physical_cores = get_cpu_info()[0]
+    cpu_procs = max(1, physical_cores // 2)
+    gpu_procs = max(2, min(8, physical_cores // 4))
+
     config_schema = {
         "Frame Extraction": {
             "frame_extraction_frequency": (int, 2),
             "frame_extraction_batch_size": (int, 250),
         },
         "Text Extraction": {
-            "text_extraction_batch_size": (int, 350),
+            "text_extraction_batch_size": (int, 100),
             "ocr_rec_language": (str, "ch"),
-            "text_drop_score": (float, 0.55),
+            "text_drop_score": (float, 0.6),
             "line_break": (bool, True),
         },
         "Subtitle Generator": {
@@ -81,6 +84,12 @@ class Config:
             "use_gpu": (bool, True),
             "use_mobile_model": (bool, True),
             "use_text_ori": (bool, False),
+        },
+        "Model Performance": {
+            "cpu_ocr_processes": (int, cpu_procs),
+            "cpu_onnx_intra_threads": (int, max(2, min(16, (physical_cores * 3) // cpu_procs))),
+            "gpu_ocr_processes": (int, gpu_procs),
+            "gpu_onnx_intra_threads": (int, max(4, min(24, (physical_cores * 5) // (2 * gpu_procs)))),
         },
     }
 

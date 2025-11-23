@@ -943,6 +943,7 @@ class PreferencesUI(tk.Toplevel):
         self._subtitle_generator_tab()
         self._notifications_tab()
         self._models_tab()
+        self._model_performance_tab()
 
         # Add buttons to window.
         button_frame = ttk.Frame(main_frame)
@@ -1110,19 +1111,7 @@ class PreferencesUI(tk.Toplevel):
             width=self.entry_size
         ).grid(column=1, row=0)
 
-        ttk.Label(text_extraction_frame, text="OCR Max Processes:").grid(column=0, row=1)
-        self.ocr_max_processes = tk.IntVar(value=utils.CONFIG.ocr_max_processes)
-        self.ocr_max_processes.trace_add("write", self._set_reset_button)
-        ttk.Spinbox(
-            text_extraction_frame,
-            from_=1, to=cpu_count(),
-            textvariable=self.ocr_max_processes,
-            state="readonly",
-            width=self.spinbox_size
-        ).grid(column=1, row=1)
-
-        ttk.Label(text_extraction_frame, text="OCR Recognition Language:").grid(column=0, row=2,
-                                                                                pady=self.wgt_y_padding)
+        ttk.Label(text_extraction_frame, text="OCR Recognition Language:").grid(column=0, row=2)
         self.ocr_rec_language = tk.StringVar(value=utils.CONFIG.ocr_rec_language)
         self.ocr_rec_language.trace_add("write", self._set_reset_button)
         ttk.Combobox(
@@ -1140,7 +1129,7 @@ class PreferencesUI(tk.Toplevel):
             width=self.combobox_size
         ).grid(column=1, row=2)
 
-        ttk.Label(text_extraction_frame, text="Text Drop Score:").grid(column=0, row=3)
+        ttk.Label(text_extraction_frame, text="Text Drop Score:").grid(column=0, row=3, pady=self.wgt_y_padding)
         self.text_drop_score = tk.DoubleVar(value=utils.CONFIG.text_drop_score)
         self.text_drop_score.trace_add("write", self._set_reset_button)
         ttk.Spinbox(
@@ -1158,7 +1147,7 @@ class PreferencesUI(tk.Toplevel):
             text_extraction_frame,
             text='Use Line Break',
             variable=self.line_break
-        ).grid(column=0, row=4, pady=self.wgt_y_padding)
+        ).grid(column=0, row=4)
 
     def _subtitle_generator_tab(self) -> None:
         """
@@ -1304,6 +1293,57 @@ class PreferencesUI(tk.Toplevel):
             text='Use Text Line Orientation Model',
             variable=self.use_text_ori
         ).grid(column=1, row=2, pady=self.wgt_y_padding)
+
+    def _model_performance_tab(self) -> None:
+        model_performance_frame = ttk.Frame(self.notebook_tab)
+        model_performance_frame.grid(column=0, row=0)
+        model_performance_frame.grid_columnconfigure(1, weight=1)
+        self.notebook_tab.add(model_performance_frame, text="Model Performance")
+
+        ttk.Label(model_performance_frame, text="CPU OCR Processes:").grid(column=0, row=0, padx=self.wgt_x_padding,
+                                                                           pady=self.wgt_y_padding)
+        self.cpu_ocr_processes = tk.IntVar(value=utils.CONFIG.cpu_ocr_processes)
+        self.cpu_ocr_processes.trace_add("write", self._set_reset_button)
+        ttk.Spinbox(
+            model_performance_frame,
+            from_=1, to=cpu_count(),
+            textvariable=self.cpu_ocr_processes,
+            state="readonly",
+            width=self.spinbox_size
+        ).grid(column=1, row=0)
+
+        ttk.Label(model_performance_frame, text="CPU ONNX Intra Threads:").grid(column=0, row=1)
+        self.cpu_onnx_intra_threads = tk.IntVar(value=utils.CONFIG.cpu_onnx_intra_threads)
+        self.cpu_onnx_intra_threads.trace_add("write", self._set_reset_button)
+        ttk.Spinbox(
+            model_performance_frame,
+            from_=1, to=cpu_count(),
+            textvariable=self.cpu_onnx_intra_threads,
+            state="readonly",
+            width=self.spinbox_size
+        ).grid(column=1, row=1)
+
+        ttk.Label(model_performance_frame, text="GPU OCR Processes:").grid(column=0, row=2, pady=self.wgt_y_padding)
+        self.gpu_ocr_processes = tk.IntVar(value=utils.CONFIG.gpu_ocr_processes)
+        self.gpu_ocr_processes.trace_add("write", self._set_reset_button)
+        ttk.Spinbox(
+            model_performance_frame,
+            from_=1, to=cpu_count(),
+            textvariable=self.gpu_ocr_processes,
+            state="readonly",
+            width=self.spinbox_size
+        ).grid(column=1, row=2)
+
+        ttk.Label(model_performance_frame, text="GPU ONNX Intra Threads:").grid(column=0, row=3)
+        self.gpu_onnx_intra_threads = tk.IntVar(value=utils.CONFIG.gpu_onnx_intra_threads)
+        self.gpu_onnx_intra_threads.trace_add("write", self._set_reset_button)
+        ttk.Spinbox(
+            model_performance_frame,
+            from_=1, to=cpu_count(),
+            textvariable=self.gpu_onnx_intra_threads,
+            state="readonly",
+            width=self.spinbox_size
+        ).grid(column=1, row=3)
 
     def _set_reset_button(self, *args) -> None:
         """
