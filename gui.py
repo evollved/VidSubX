@@ -933,7 +933,6 @@ class PreferencesUI(tk.Toplevel):
         self.entry_size = 15
         self.spinbox_size = 13
         self.combobox_size = 12
-        self.wgt_x_padding = 70
         self.wgt_y_padding = 20
 
         # Add tabs to notebook.
@@ -967,11 +966,12 @@ class PreferencesUI(tk.Toplevel):
         """
         subtitle_detection_frame = ttk.Frame(self.notebook_tab)
         subtitle_detection_frame.grid(column=0, row=0)
+        subtitle_detection_frame.grid_columnconfigure(0, weight=1)
         subtitle_detection_frame.grid_columnconfigure(1, weight=1)
         self.notebook_tab.add(subtitle_detection_frame, text="Subtitle Detection")
 
         ttk.Label(subtitle_detection_frame, text="Split Start (Relative position):").grid(
-            column=0, row=0, padx=self.wgt_x_padding, pady=self.wgt_y_padding
+            column=0, row=0, pady=self.wgt_y_padding
         )
         self.split_start = tk.DoubleVar(value=utils.CONFIG.split_start)
         self.split_start.trace_add("write", self._set_reset_button)
@@ -1060,11 +1060,12 @@ class PreferencesUI(tk.Toplevel):
         """
         frame_extraction_frame = ttk.Frame(self.notebook_tab)
         frame_extraction_frame.grid(column=0, row=0)
+        frame_extraction_frame.grid_columnconfigure(0, weight=1)
         frame_extraction_frame.grid_columnconfigure(1, weight=1)
         self.notebook_tab.add(frame_extraction_frame, text="Frame Extraction")
 
         ttk.Label(frame_extraction_frame, text="Frame Extraction Frequency:").grid(
-            column=0, row=0, padx=self.wgt_x_padding, pady=self.wgt_y_padding
+            column=0, row=0, pady=self.wgt_y_padding
         )
         self.frame_extraction_frequency = tk.IntVar(value=utils.CONFIG.frame_extraction_frequency)
         self.frame_extraction_frequency.trace_add("write", self._set_reset_button)
@@ -1094,11 +1095,12 @@ class PreferencesUI(tk.Toplevel):
         """
         text_extraction_frame = ttk.Frame(self.notebook_tab)
         text_extraction_frame.grid(column=0, row=0)
+        text_extraction_frame.grid_columnconfigure(0, weight=1)
         text_extraction_frame.grid_columnconfigure(1, weight=1)
         self.notebook_tab.add(text_extraction_frame, text="Text Extraction")
 
         ttk.Label(text_extraction_frame, text="Text Extraction Batch Size:").grid(
-            column=0, row=0, padx=self.wgt_x_padding, pady=self.wgt_y_padding
+            column=0, row=0, pady=self.wgt_y_padding
         )
         self.text_extraction_batch_size = tk.IntVar(value=utils.CONFIG.text_extraction_batch_size)
         self.text_extraction_batch_size.trace_add("write", self._set_reset_button)
@@ -1155,11 +1157,12 @@ class PreferencesUI(tk.Toplevel):
         """
         subtitle_generator_frame = ttk.Frame(self.notebook_tab)
         subtitle_generator_frame.grid(column=0, row=0)
+        subtitle_generator_frame.grid_columnconfigure(0, weight=1)
         subtitle_generator_frame.grid_columnconfigure(1, weight=1)
         self.notebook_tab.add(subtitle_generator_frame, text="Subtitle Generator")
 
         ttk.Label(subtitle_generator_frame, text="Text Similarity Threshold:").grid(
-            column=0, row=0, padx=self.wgt_x_padding, pady=self.wgt_y_padding
+            column=0, row=0, pady=self.wgt_y_padding
         )
         self.text_similarity_threshold = tk.DoubleVar(value=utils.CONFIG.text_similarity_threshold)
         self.text_similarity_threshold.trace_add("write", self._set_reset_button)
@@ -1227,12 +1230,11 @@ class PreferencesUI(tk.Toplevel):
         """
         notification_frame = ttk.Frame(self.notebook_tab)
         notification_frame.grid(column=0, row=0)
+        notification_frame.grid_columnconfigure(0, weight=1)
         notification_frame.grid_columnconfigure(1, weight=1)
         self.notebook_tab.add(notification_frame, text="Notification")
 
-        ttk.Label(notification_frame, text="Notification Sound:").grid(
-            column=0, row=0, padx=self.wgt_x_padding, pady=self.wgt_y_padding
-        )
+        ttk.Label(notification_frame, text="Notification Sound:").grid(column=0, row=0, pady=self.wgt_y_padding)
         self.win_notify_sound = tk.StringVar(value=utils.CONFIG.win_notify_sound)
         self.win_notify_sound.trace_add("write", self._set_reset_button)
         ttk.Combobox(
@@ -1254,12 +1256,11 @@ class PreferencesUI(tk.Toplevel):
     def _models_tab(self) -> None:
         models_frame = ttk.Frame(self.notebook_tab)
         models_frame.grid(column=0, row=0)
+        models_frame.grid_columnconfigure(0, weight=1)
         models_frame.grid_columnconfigure(1, weight=1)
         self.notebook_tab.add(models_frame, text=" Models ")
 
-        ttk.Label(models_frame, text="PaddleOCR Version:").grid(
-            column=0, row=0, padx=self.wgt_x_padding, pady=self.wgt_y_padding
-        )
+        ttk.Label(models_frame, text="PaddleOCR Version:").grid(column=0, row=0, pady=self.wgt_y_padding)
         self.paddleocr_version = tk.StringVar(value=utils.CONFIG.paddleocr_version)
         self.paddleocr_version.trace_add("write", self._set_reset_button)
         ttk.Combobox(
@@ -1297,11 +1298,11 @@ class PreferencesUI(tk.Toplevel):
     def _model_performance_tab(self) -> None:
         model_performance_frame = ttk.Frame(self.notebook_tab)
         model_performance_frame.grid(column=0, row=0)
+        model_performance_frame.grid_columnconfigure(0, weight=1)
         model_performance_frame.grid_columnconfigure(1, weight=1)
         self.notebook_tab.add(model_performance_frame, text="Model Performance")
 
-        ttk.Label(model_performance_frame, text="CPU OCR Processes:").grid(column=0, row=0, padx=self.wgt_x_padding,
-                                                                           pady=self.wgt_y_padding)
+        ttk.Label(model_performance_frame, text="CPU OCR Processes:").grid(column=0, row=0, pady=self.wgt_y_padding)
         self.cpu_ocr_processes = tk.IntVar(value=utils.CONFIG.cpu_ocr_processes)
         self.cpu_ocr_processes.trace_add("write", self._set_reset_button)
         ttk.Spinbox(
