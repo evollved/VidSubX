@@ -955,8 +955,8 @@ class PreferencesUI(tk.Toplevel):
         cancel_button = ttk.Button(button_frame, text="Cancel", command=self.destroy)
         cancel_button.grid(column=2, row=0, padx=4, pady=4)
 
-        # Set the reset button when layout is created.
-        self._set_reset_button()
+        self._set_reset_button()  # Set the reset button when layout is created.
+        self._set_ocr_perf_state()
 
     def make_pref_var(self, var):
         """
@@ -1206,50 +1206,66 @@ class PreferencesUI(tk.Toplevel):
 
         ttk.Label(model_performance_frame, text="CPU OCR Processes:").grid(column=0, row=0, pady=self.wgt_y_padding)
         self.cpu_ocr_processes = self.make_pref_var(utils.CONFIG.cpu_ocr_processes)
-        ttk.Spinbox(
+        self.cpu_ocr_processes_sb = ttk.Spinbox(
             model_performance_frame,
             from_=1, to=cpu_count(),
             textvariable=self.cpu_ocr_processes,
             state="readonly",
             width=self.spinbox_size
-        ).grid(column=1, row=0)
+        )
+        self.cpu_ocr_processes_sb.grid(column=1, row=0)
 
         ttk.Label(model_performance_frame, text="CPU ONNX Intra Threads:").grid(column=0, row=1)
         self.cpu_onnx_intra_threads = self.make_pref_var(utils.CONFIG.cpu_onnx_intra_threads)
-        ttk.Spinbox(
+        self.cpu_onnx_intra_threads_sb = ttk.Spinbox(
             model_performance_frame,
             from_=1, to=cpu_count(),
             textvariable=self.cpu_onnx_intra_threads,
             state="readonly",
             width=self.spinbox_size
-        ).grid(column=1, row=1)
+        )
+        self.cpu_onnx_intra_threads_sb.grid(column=1, row=1)
 
         ttk.Label(model_performance_frame, text="GPU OCR Processes:").grid(column=0, row=2, pady=self.wgt_y_padding)
         self.gpu_ocr_processes = self.make_pref_var(utils.CONFIG.gpu_ocr_processes)
-        ttk.Spinbox(
+        self.gpu_ocr_processes_sb = ttk.Spinbox(
             model_performance_frame,
             from_=1, to=cpu_count(),
             textvariable=self.gpu_ocr_processes,
             state="readonly",
             width=self.spinbox_size
-        ).grid(column=1, row=2)
+        )
+        self.gpu_ocr_processes_sb.grid(column=1, row=2)
 
         ttk.Label(model_performance_frame, text="GPU ONNX Intra Threads:").grid(column=0, row=3)
         self.gpu_onnx_intra_threads = self.make_pref_var(utils.CONFIG.gpu_onnx_intra_threads)
-        ttk.Spinbox(
+        self.gpu_onnx_intra_threads_sb = ttk.Spinbox(
             model_performance_frame,
             from_=1, to=cpu_count(),
             textvariable=self.gpu_onnx_intra_threads,
             state="readonly",
             width=self.spinbox_size
-        ).grid(column=1, row=3)
+        )
+        self.gpu_onnx_intra_threads_sb.grid(column=1, row=3)
 
         self.auto_optimize_perf = self.make_pref_var(utils.CONFIG.auto_optimize_perf)
+        self.auto_optimize_perf.trace_add("write", self._set_ocr_perf_state)
         ttk.Checkbutton(
             model_performance_frame,
             text='Auto Optimize Performance',
             variable=self.auto_optimize_perf
         ).grid(column=0, row=4, pady=self.wgt_y_padding)
+
+    def _set_ocr_perf_state(self, *args) -> None:
+        """
+        Set the state of other performance variables widgets.
+        """
+        logger.debug(f"_set_ocr_perf_state: {args}")
+        key_name, ocr_perf_keys = "auto_optimize_perf", list(utils.CONFIG.config_schema["OCR Performance"])
+        ocr_perf_keys.remove(key_name)
+        state = "disabled" if getattr(self, key_name).get() else "normal"
+        for key in ocr_perf_keys:
+            getattr(self, f"{key}_sb").configure(state=state)
 
     def _subtitle_generator_tab(self) -> None:
         """
