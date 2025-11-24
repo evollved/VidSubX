@@ -960,6 +960,19 @@ class PreferencesUI(tk.Toplevel):
         # Set the reset button when layout is created.
         self._set_reset_button()
 
+    def make_pref_var(self, var):
+        """
+        Make a variable for the preference gui and add tracing for the reset button.
+        """
+        type_map = {str: tk.StringVar, int: tk.IntVar, float: tk.DoubleVar, bool: tk.BooleanVar}
+        try:
+            tk_var_type = type_map[type(var)]
+        except KeyError:
+            raise TypeError(f"Unknown tk type for variable: {var!r}, type: {type(var)}")
+        var = tk_var_type(value=var)
+        var.trace_add("write", self._set_reset_button)
+        return var
+
     def _subtitle_detection_tab(self) -> None:
         """
         Creates widgets in the Subtitle detection preferences tab frame.
@@ -973,8 +986,7 @@ class PreferencesUI(tk.Toplevel):
         ttk.Label(subtitle_detection_frame, text="Split Start (Relative position):").grid(
             column=0, row=0, pady=self.wgt_y_padding
         )
-        self.split_start = tk.DoubleVar(value=utils.CONFIG.split_start)
-        self.split_start.trace_add("write", self._set_reset_button)
+        self.split_start = self.make_pref_var(utils.CONFIG.split_start)
         ttk.Spinbox(
             subtitle_detection_frame,
             from_=0, to=0.5,
@@ -985,8 +997,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=0)
 
         ttk.Label(subtitle_detection_frame, text="Split Stop (Relative position):").grid(column=0, row=1)
-        self.split_stop = tk.DoubleVar(value=utils.CONFIG.split_stop)
-        self.split_stop.trace_add("write", self._set_reset_button)
+        self.split_stop = self.make_pref_var(utils.CONFIG.split_stop)
         ttk.Spinbox(
             subtitle_detection_frame,
             from_=0.5, to=1.0,
@@ -997,8 +1008,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=1)
 
         ttk.Label(subtitle_detection_frame, text="No of Frames:").grid(column=0, row=2, pady=self.wgt_y_padding)
-        self.no_of_frames = tk.IntVar(value=utils.CONFIG.no_of_frames)
-        self.no_of_frames.trace_add("write", self._set_reset_button)
+        self.no_of_frames = self.make_pref_var(utils.CONFIG.no_of_frames)
         check_int = (self.register(self._check_integer), '%P')
         ttk.Entry(
             subtitle_detection_frame,
@@ -1009,8 +1019,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=2)
 
         ttk.Label(subtitle_detection_frame, text="X Axis Padding (Relative):").grid(column=0, row=3)
-        self.sub_area_x_rel_padding = tk.DoubleVar(value=utils.CONFIG.sub_area_x_rel_padding)
-        self.sub_area_x_rel_padding.trace_add("write", self._set_reset_button)
+        self.sub_area_x_rel_padding = self.make_pref_var(utils.CONFIG.sub_area_x_rel_padding)
         ttk.Spinbox(
             subtitle_detection_frame,
             from_=0.5, to=1.0,
@@ -1023,8 +1032,7 @@ class PreferencesUI(tk.Toplevel):
         ttk.Label(subtitle_detection_frame, text="Y Axis Padding (Absolute):").grid(
             column=0, row=4, pady=self.wgt_y_padding
         )
-        self.sub_area_y_abs_padding = tk.IntVar(value=utils.CONFIG.sub_area_y_abs_padding)
-        self.sub_area_y_abs_padding.trace_add("write", self._set_reset_button)
+        self.sub_area_y_abs_padding = self.make_pref_var(utils.CONFIG.sub_area_y_abs_padding)
         check_int = (self.register(self._check_integer), '%P')
         ttk.Entry(
             subtitle_detection_frame,
@@ -1035,8 +1043,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=4)
 
         ttk.Label(subtitle_detection_frame, text="BBox Drop Score:").grid(column=0, row=5)
-        self.bbox_drop_score = tk.DoubleVar(value=utils.CONFIG.bbox_drop_score)
-        self.bbox_drop_score.trace_add("write", self._set_reset_button)
+        self.bbox_drop_score = self.make_pref_var(utils.CONFIG.bbox_drop_score)
         ttk.Spinbox(
             subtitle_detection_frame,
             from_=0, to=1.0,
@@ -1046,8 +1053,7 @@ class PreferencesUI(tk.Toplevel):
             width=self.spinbox_size
         ).grid(column=1, row=5)
 
-        self.use_search_area = tk.BooleanVar(value=utils.CONFIG.use_search_area)
-        self.use_search_area.trace_add("write", self._set_reset_button)
+        self.use_search_area = self.make_pref_var(utils.CONFIG.use_search_area)
         ttk.Checkbutton(
             subtitle_detection_frame,
             text='Use Default Search Area',
@@ -1067,8 +1073,7 @@ class PreferencesUI(tk.Toplevel):
         ttk.Label(frame_extraction_frame, text="Frame Extraction Frequency:").grid(
             column=0, row=0, pady=self.wgt_y_padding
         )
-        self.frame_extraction_frequency = tk.IntVar(value=utils.CONFIG.frame_extraction_frequency)
-        self.frame_extraction_frequency.trace_add("write", self._set_reset_button)
+        self.frame_extraction_frequency = self.make_pref_var(utils.CONFIG.frame_extraction_frequency)
         ttk.Spinbox(
             frame_extraction_frame,
             from_=1.0, to=10,
@@ -1078,8 +1083,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=0)
 
         ttk.Label(frame_extraction_frame, text="Frame Extraction Batch Size:").grid(column=0, row=1)
-        self.frame_extraction_batch_size = tk.IntVar(value=utils.CONFIG.frame_extraction_batch_size)
-        self.frame_extraction_batch_size.trace_add("write", self._set_reset_button)
+        self.frame_extraction_batch_size = self.make_pref_var(utils.CONFIG.frame_extraction_batch_size)
         check_int = (self.register(self._check_integer), '%P')
         ttk.Entry(
             frame_extraction_frame,
@@ -1102,8 +1106,7 @@ class PreferencesUI(tk.Toplevel):
         ttk.Label(text_extraction_frame, text="Text Extraction Batch Size:").grid(
             column=0, row=0, pady=self.wgt_y_padding
         )
-        self.text_extraction_batch_size = tk.IntVar(value=utils.CONFIG.text_extraction_batch_size)
-        self.text_extraction_batch_size.trace_add("write", self._set_reset_button)
+        self.text_extraction_batch_size = self.make_pref_var(utils.CONFIG.text_extraction_batch_size)
         check_int = (self.register(self._check_integer), '%P')
         ttk.Entry(
             text_extraction_frame,
@@ -1114,8 +1117,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=0)
 
         ttk.Label(text_extraction_frame, text="OCR Recognition Language:").grid(column=0, row=2)
-        self.ocr_rec_language = tk.StringVar(value=utils.CONFIG.ocr_rec_language)
-        self.ocr_rec_language.trace_add("write", self._set_reset_button)
+        self.ocr_rec_language = self.make_pref_var(utils.CONFIG.ocr_rec_language)
         ttk.Combobox(
             text_extraction_frame,
             textvariable=self.ocr_rec_language,
@@ -1132,8 +1134,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=2)
 
         ttk.Label(text_extraction_frame, text="Text Drop Score:").grid(column=0, row=3, pady=self.wgt_y_padding)
-        self.text_drop_score = tk.DoubleVar(value=utils.CONFIG.text_drop_score)
-        self.text_drop_score.trace_add("write", self._set_reset_button)
+        self.text_drop_score = self.make_pref_var(utils.CONFIG.text_drop_score)
         ttk.Spinbox(
             text_extraction_frame,
             from_=0, to=1.0,
@@ -1143,8 +1144,7 @@ class PreferencesUI(tk.Toplevel):
             width=self.spinbox_size
         ).grid(column=1, row=3)
 
-        self.line_break = tk.BooleanVar(value=utils.CONFIG.line_break)
-        self.line_break.trace_add("write", self._set_reset_button)
+        self.line_break = self.make_pref_var(utils.CONFIG.line_break)
         ttk.Checkbutton(
             text_extraction_frame,
             text='Use Line Break',
@@ -1164,8 +1164,7 @@ class PreferencesUI(tk.Toplevel):
         ttk.Label(subtitle_generator_frame, text="Text Similarity Threshold:").grid(
             column=0, row=0, pady=self.wgt_y_padding
         )
-        self.text_similarity_threshold = tk.DoubleVar(value=utils.CONFIG.text_similarity_threshold)
-        self.text_similarity_threshold.trace_add("write", self._set_reset_button)
+        self.text_similarity_threshold = self.make_pref_var(utils.CONFIG.text_similarity_threshold)
         ttk.Spinbox(
             subtitle_generator_frame,
             from_=0, to=1.0,
@@ -1176,8 +1175,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=0)
 
         ttk.Label(subtitle_generator_frame, text="Minimum Consecutive Sub Duration (ms):").grid(column=0, row=1)
-        self.min_consecutive_sub_dur_ms = tk.DoubleVar(value=utils.CONFIG.min_consecutive_sub_dur_ms)
-        self.min_consecutive_sub_dur_ms.trace_add("write", self._set_reset_button)
+        self.min_consecutive_sub_dur_ms = self.make_pref_var(utils.CONFIG.min_consecutive_sub_dur_ms)
         check_float = (self.register(self._check_float), '%P')
         ttk.Entry(
             subtitle_generator_frame,
@@ -1190,8 +1188,7 @@ class PreferencesUI(tk.Toplevel):
         ttk.Label(subtitle_generator_frame, text="Max Consecutive Short Durations:").grid(
             column=0, row=2, pady=self.wgt_y_padding
         )
-        self.max_consecutive_short_durs = tk.IntVar(value=utils.CONFIG.max_consecutive_short_durs)
-        self.max_consecutive_short_durs.trace_add("write", self._set_reset_button)
+        self.max_consecutive_short_durs = self.make_pref_var(utils.CONFIG.max_consecutive_short_durs)
         ttk.Spinbox(
             subtitle_generator_frame,
             from_=2, to=10,
@@ -1202,8 +1199,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=2)
 
         ttk.Label(subtitle_generator_frame, text="Minimum Sub Duration (ms):").grid(column=0, row=3)
-        self.min_sub_duration_ms = tk.DoubleVar(value=utils.CONFIG.min_sub_duration_ms)
-        self.min_sub_duration_ms.trace_add("write", self._set_reset_button)
+        self.min_sub_duration_ms = self.make_pref_var(utils.CONFIG.min_sub_duration_ms)
         check_float = (self.register(self._check_float), '%P')
         ttk.Entry(
             subtitle_generator_frame,
@@ -1221,8 +1217,8 @@ class PreferencesUI(tk.Toplevel):
         if operating_system == "Windows":
             self._win_notifications_tab()
         else:
-            self.win_notify_sound = tk.StringVar(value=utils.CONFIG.win_notify_sound)
-            self.win_notify_loop_sound = tk.BooleanVar(value=utils.CONFIG.win_notify_loop_sound)
+            self.win_notify_sound = self.make_pref_var(utils.CONFIG.win_notify_sound)
+            self.win_notify_loop_sound = self.make_pref_var(utils.CONFIG.win_notify_loop_sound)
 
     def _win_notifications_tab(self) -> None:
         """
@@ -1235,8 +1231,7 @@ class PreferencesUI(tk.Toplevel):
         self.notebook_tab.add(notification_frame, text="Notification")
 
         ttk.Label(notification_frame, text="Notification Sound:").grid(column=0, row=0, pady=self.wgt_y_padding)
-        self.win_notify_sound = tk.StringVar(value=utils.CONFIG.win_notify_sound)
-        self.win_notify_sound.trace_add("write", self._set_reset_button)
+        self.win_notify_sound = self.make_pref_var(utils.CONFIG.win_notify_sound)
         ttk.Combobox(
             notification_frame,
             textvariable=self.win_notify_sound,
@@ -1245,8 +1240,7 @@ class PreferencesUI(tk.Toplevel):
             width=self.combobox_size + 3
         ).grid(column=1, row=0)
 
-        self.win_notify_loop_sound = tk.BooleanVar(value=utils.CONFIG.win_notify_loop_sound)
-        self.win_notify_loop_sound.trace_add("write", self._set_reset_button)
+        self.win_notify_loop_sound = self.make_pref_var(utils.CONFIG.win_notify_loop_sound)
         ttk.Checkbutton(
             notification_frame,
             text='Loop Notification Sound',
@@ -1261,8 +1255,7 @@ class PreferencesUI(tk.Toplevel):
         self.notebook_tab.add(models_frame, text=" Models ")
 
         ttk.Label(models_frame, text="PaddleOCR Version:").grid(column=0, row=0, pady=self.wgt_y_padding)
-        self.paddleocr_version = tk.StringVar(value=utils.CONFIG.paddleocr_version)
-        self.paddleocr_version.trace_add("write", self._set_reset_button)
+        self.paddleocr_version = self.make_pref_var(utils.CONFIG.paddleocr_version)
         ttk.Combobox(
             models_frame,
             textvariable=self.paddleocr_version,
@@ -1271,24 +1264,21 @@ class PreferencesUI(tk.Toplevel):
             width=self.combobox_size
         ).grid(column=1, row=0)
 
-        self.use_gpu = tk.BooleanVar(value=utils.CONFIG.use_gpu)
-        self.use_gpu.trace_add("write", self._set_reset_button)
+        self.use_gpu = self.make_pref_var(utils.CONFIG.use_gpu)
         ttk.Checkbutton(
             models_frame,
             text='Use GPU If Available',
             variable=self.use_gpu
         ).grid(column=0, row=1)
 
-        self.use_mobile_model = tk.BooleanVar(value=utils.CONFIG.use_mobile_model)
-        self.use_mobile_model.trace_add("write", self._set_reset_button)
+        self.use_mobile_model = self.make_pref_var(utils.CONFIG.use_mobile_model)
         ttk.Checkbutton(
             models_frame,
             text='Use Mobile Model',
             variable=self.use_mobile_model
         ).grid(column=1, row=1)
 
-        self.use_text_ori = tk.BooleanVar(value=utils.CONFIG.use_text_ori)
-        self.use_text_ori.trace_add("write", self._set_reset_button)
+        self.use_text_ori = self.make_pref_var(utils.CONFIG.use_text_ori)
         ttk.Checkbutton(
             models_frame,
             text='Use Text Line Orientation Model',
@@ -1303,8 +1293,7 @@ class PreferencesUI(tk.Toplevel):
         self.notebook_tab.add(model_performance_frame, text="Model Performance")
 
         ttk.Label(model_performance_frame, text="CPU OCR Processes:").grid(column=0, row=0, pady=self.wgt_y_padding)
-        self.cpu_ocr_processes = tk.IntVar(value=utils.CONFIG.cpu_ocr_processes)
-        self.cpu_ocr_processes.trace_add("write", self._set_reset_button)
+        self.cpu_ocr_processes = self.make_pref_var(utils.CONFIG.cpu_ocr_processes)
         ttk.Spinbox(
             model_performance_frame,
             from_=1, to=cpu_count(),
@@ -1314,8 +1303,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=0)
 
         ttk.Label(model_performance_frame, text="CPU ONNX Intra Threads:").grid(column=0, row=1)
-        self.cpu_onnx_intra_threads = tk.IntVar(value=utils.CONFIG.cpu_onnx_intra_threads)
-        self.cpu_onnx_intra_threads.trace_add("write", self._set_reset_button)
+        self.cpu_onnx_intra_threads = self.make_pref_var(utils.CONFIG.cpu_onnx_intra_threads)
         ttk.Spinbox(
             model_performance_frame,
             from_=1, to=cpu_count(),
@@ -1325,8 +1313,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=1)
 
         ttk.Label(model_performance_frame, text="GPU OCR Processes:").grid(column=0, row=2, pady=self.wgt_y_padding)
-        self.gpu_ocr_processes = tk.IntVar(value=utils.CONFIG.gpu_ocr_processes)
-        self.gpu_ocr_processes.trace_add("write", self._set_reset_button)
+        self.gpu_ocr_processes = self.make_pref_var(utils.CONFIG.gpu_ocr_processes)
         ttk.Spinbox(
             model_performance_frame,
             from_=1, to=cpu_count(),
@@ -1336,8 +1323,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=2)
 
         ttk.Label(model_performance_frame, text="GPU ONNX Intra Threads:").grid(column=0, row=3)
-        self.gpu_onnx_intra_threads = tk.IntVar(value=utils.CONFIG.gpu_onnx_intra_threads)
-        self.gpu_onnx_intra_threads.trace_add("write", self._set_reset_button)
+        self.gpu_onnx_intra_threads = self.make_pref_var(utils.CONFIG.gpu_onnx_intra_threads)
         ttk.Spinbox(
             model_performance_frame,
             from_=1, to=cpu_count(),
