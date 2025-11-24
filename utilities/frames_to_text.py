@@ -5,10 +5,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import onnxruntime as ort
-
-ctypes.CDLL(f"{site.getsitepackages()[1]}/nvidia/cuda_nvrtc/bin/nvrtc64_120_0.dll")
-ort.preload_dlls()
-
 from custom_ocr import CustomPaddleOCR, TextDetection
 
 import utilities.utils as utils
@@ -22,6 +18,7 @@ def setup_ocr() -> None:
     utils.CONFIG.ocr_opts["lang"] = utils.CONFIG.ocr_rec_language
     utils.CONFIG.ocr_opts["ocr_version"] = utils.CONFIG.paddleocr_version
     utils.CONFIG.ocr_opts["use_mobile_model"] = utils.CONFIG.use_mobile_model
+    utils.CONFIG.ocr_opts["use_textline_orientation"] = utils.CONFIG.use_text_ori
 
     download_models()
     setup_ocr_device()
@@ -31,6 +28,9 @@ def setup_ocr_device() -> None:
     sess_opt = ort.SessionOptions()
     if utils.CONFIG.use_gpu and "CUDAExecutionProvider" in ort.get_available_providers():
         utils.CONFIG.ocr_opts["use_gpu"] = True
+        # Fix "Could not locate nvrtc64_120_0.dll" Warning Message
+        ctypes.CDLL(f"{site.getsitepackages()[1]}/nvidia/cuda_nvrtc/bin/nvrtc64_120_0.dll")
+        ort.preload_dlls()
         sess_opt.intra_op_num_threads = utils.CONFIG.gpu_onnx_intra_threads
     else:
         utils.CONFIG.ocr_opts["use_gpu"] = False

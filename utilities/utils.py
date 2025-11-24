@@ -1,10 +1,9 @@
-import json
 import logging
-import platform
-import subprocess
 from configparser import ConfigParser
 from functools import cache
 from pathlib import Path
+
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -30,22 +29,12 @@ class Process:
 
 
 @cache
-def get_cpu_info() -> tuple:
-    if platform.system() == "Windows":
-        cmd = [
-            "powershell",
-            "-Command",
-            "(Get-CimInstance Win32_Processor | Select-Object -First 1 NumberOfCores, NumberOfLogicalProcessors | ConvertTo-Json)"
-        ]
-        output = subprocess.run(cmd, capture_output=True).stdout.decode()
-        data = json.loads(output)
-        return data["NumberOfCores"], data["NumberOfLogicalProcessors"]
-    else:
-        raise RuntimeError("Unsupported OS")
+def get_physical_cores() -> int:
+    return psutil.cpu_count(logical=False)
 
 
 class Config:
-    physical_cores = get_cpu_info()[0]
+    physical_cores = get_physical_cores()
     cpu_procs = max(1, physical_cores // 2)
     gpu_procs = max(2, min(8, physical_cores // 4))
 

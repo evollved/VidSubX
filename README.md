@@ -44,10 +44,26 @@ installed. The program will not start without it.
 
 **Install packages**
 
-This also installs all the requirements.
+For GPU
+
+```
+pip install onnxruntime-gpu[cuda,cudnn]==1.23.2
+```
+
+For CPU
+
+```
+pip install onnxruntime
+```
+
+Other packages
 
 ```
 pip install custom_ocr[full]@git+https://github.com/voun7/CustomPaddleOCR.git@1.0 
+```
+
+```
+pip install psutil
 ```
 
 Run `gui.py` to use Graphical interface and `main.py` to use Terminal.
