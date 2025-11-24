@@ -79,17 +79,19 @@ class Config:
             "win_notify_sound": (str, "Default"),
             "win_notify_loop_sound": (bool, True),
         },
-        "Models": {
+        "OCR Engine": {
             "paddleocr_version": (str, "PP-OCRv5"),
             "use_gpu": (bool, True),
             "use_mobile_model": (bool, True),
             "use_text_ori": (bool, False),
         },
-        "Model Performance": {
+        "OCR Performance": {
             "cpu_ocr_processes": (int, cpu_procs),
             "cpu_onnx_intra_threads": (int, max(2, min(16, (physical_cores * 3) // cpu_procs))),
             "gpu_ocr_processes": (int, gpu_procs),
             "gpu_onnx_intra_threads": (int, max(4, min(24, (physical_cores * 5) // (2 * gpu_procs)))),
+            # todo: write code that can detect cpu/gpu usage and auto adjust processes and intra threads for the best performance
+            "auto_optimize_perf": (bool, True),
         },
     }
 

@@ -938,11 +938,9 @@ class PreferencesUI(tk.Toplevel):
         # Add tabs to notebook.
         self._subtitle_detection_tab()
         self._frame_extraction_tab()
-        self._text_extraction_tab()
+        self._text_extraction_nb()
         self._subtitle_generator_tab()
         self._notifications_tab()
-        self._models_tab()
-        self._model_performance_tab()
 
         # Add buttons to window.
         button_frame = ttk.Frame(main_frame)
@@ -1093,7 +1091,17 @@ class PreferencesUI(tk.Toplevel):
             width=self.entry_size
         ).grid(column=1, row=1)
 
-    def _text_extraction_tab(self) -> None:
+    def _text_extraction_nb(self) -> None:
+        """
+        A notebook tab for all the options related to text extraction.
+        """
+        text_extraction_notebook = ttk.Notebook(self.notebook_tab)
+        self.notebook_tab.add(text_extraction_notebook, text="Text Extraction")
+        self._text_extraction_tab(text_extraction_notebook)
+        self._ocr_engine_tab(text_extraction_notebook)
+        self._ocr_performance_tab(text_extraction_notebook)
+
+    def _text_extraction_tab(self, notebook_tab) -> None:
         """
         Creates widgets in the Text extraction preferences tab frame.
         """
@@ -1101,7 +1109,7 @@ class PreferencesUI(tk.Toplevel):
         text_extraction_frame.grid(column=0, row=0)
         text_extraction_frame.grid_columnconfigure(0, weight=1)
         text_extraction_frame.grid_columnconfigure(1, weight=1)
-        self.notebook_tab.add(text_extraction_frame, text="Text Extraction")
+        notebook_tab.add(text_extraction_frame, text="Extraction")
 
         ttk.Label(text_extraction_frame, text="Text Extraction Batch Size:").grid(
             column=0, row=0, pady=self.wgt_y_padding
@@ -1150,6 +1158,98 @@ class PreferencesUI(tk.Toplevel):
             text='Use Line Break',
             variable=self.line_break
         ).grid(column=0, row=4)
+
+    def _ocr_engine_tab(self, notebook_tab) -> None:
+        models_frame = ttk.Frame(self.notebook_tab)
+        models_frame.grid(column=0, row=0)
+        models_frame.grid_columnconfigure(0, weight=1)
+        models_frame.grid_columnconfigure(1, weight=1)
+        notebook_tab.add(models_frame, text="OCR Engine")
+
+        ttk.Label(models_frame, text="PaddleOCR Version:").grid(column=0, row=0, pady=self.wgt_y_padding)
+        self.paddleocr_version = self.make_pref_var(utils.CONFIG.paddleocr_version)
+        ttk.Combobox(
+            models_frame,
+            textvariable=self.paddleocr_version,
+            values=["PP-OCRv3", "PP-OCRv4", "PP-OCRv5"],
+            state="readonly",
+            width=self.combobox_size
+        ).grid(column=1, row=0)
+
+        self.use_gpu = self.make_pref_var(utils.CONFIG.use_gpu)
+        ttk.Checkbutton(
+            models_frame,
+            text='Use GPU If Available',
+            variable=self.use_gpu
+        ).grid(column=0, row=1)
+
+        self.use_mobile_model = self.make_pref_var(utils.CONFIG.use_mobile_model)
+        ttk.Checkbutton(
+            models_frame,
+            text='Use Mobile Model',
+            variable=self.use_mobile_model
+        ).grid(column=1, row=1)
+
+        self.use_text_ori = self.make_pref_var(utils.CONFIG.use_text_ori)
+        ttk.Checkbutton(
+            models_frame,
+            text='Use Text Line Orientation Model',
+            variable=self.use_text_ori
+        ).grid(column=0, row=2, pady=self.wgt_y_padding)
+
+    def _ocr_performance_tab(self, notebook_tab) -> None:
+        model_performance_frame = ttk.Frame(self.notebook_tab)
+        model_performance_frame.grid(column=0, row=0)
+        model_performance_frame.grid_columnconfigure(0, weight=1)
+        model_performance_frame.grid_columnconfigure(1, weight=1)
+        notebook_tab.add(model_performance_frame, text="OCR Performance")
+
+        ttk.Label(model_performance_frame, text="CPU OCR Processes:").grid(column=0, row=0, pady=self.wgt_y_padding)
+        self.cpu_ocr_processes = self.make_pref_var(utils.CONFIG.cpu_ocr_processes)
+        ttk.Spinbox(
+            model_performance_frame,
+            from_=1, to=cpu_count(),
+            textvariable=self.cpu_ocr_processes,
+            state="readonly",
+            width=self.spinbox_size
+        ).grid(column=1, row=0)
+
+        ttk.Label(model_performance_frame, text="CPU ONNX Intra Threads:").grid(column=0, row=1)
+        self.cpu_onnx_intra_threads = self.make_pref_var(utils.CONFIG.cpu_onnx_intra_threads)
+        ttk.Spinbox(
+            model_performance_frame,
+            from_=1, to=cpu_count(),
+            textvariable=self.cpu_onnx_intra_threads,
+            state="readonly",
+            width=self.spinbox_size
+        ).grid(column=1, row=1)
+
+        ttk.Label(model_performance_frame, text="GPU OCR Processes:").grid(column=0, row=2, pady=self.wgt_y_padding)
+        self.gpu_ocr_processes = self.make_pref_var(utils.CONFIG.gpu_ocr_processes)
+        ttk.Spinbox(
+            model_performance_frame,
+            from_=1, to=cpu_count(),
+            textvariable=self.gpu_ocr_processes,
+            state="readonly",
+            width=self.spinbox_size
+        ).grid(column=1, row=2)
+
+        ttk.Label(model_performance_frame, text="GPU ONNX Intra Threads:").grid(column=0, row=3)
+        self.gpu_onnx_intra_threads = self.make_pref_var(utils.CONFIG.gpu_onnx_intra_threads)
+        ttk.Spinbox(
+            model_performance_frame,
+            from_=1, to=cpu_count(),
+            textvariable=self.gpu_onnx_intra_threads,
+            state="readonly",
+            width=self.spinbox_size
+        ).grid(column=1, row=3)
+
+        self.auto_optimize_perf = self.make_pref_var(utils.CONFIG.auto_optimize_perf)
+        ttk.Checkbutton(
+            model_performance_frame,
+            text='Auto Optimize Performance',
+            variable=self.auto_optimize_perf
+        ).grid(column=0, row=4, pady=self.wgt_y_padding)
 
     def _subtitle_generator_tab(self) -> None:
         """
@@ -1246,91 +1346,6 @@ class PreferencesUI(tk.Toplevel):
             text='Loop Notification Sound',
             variable=self.win_notify_loop_sound
         ).grid(column=1, row=1)
-
-    def _models_tab(self) -> None:
-        models_frame = ttk.Frame(self.notebook_tab)
-        models_frame.grid(column=0, row=0)
-        models_frame.grid_columnconfigure(0, weight=1)
-        models_frame.grid_columnconfigure(1, weight=1)
-        self.notebook_tab.add(models_frame, text=" Models ")
-
-        ttk.Label(models_frame, text="PaddleOCR Version:").grid(column=0, row=0, pady=self.wgt_y_padding)
-        self.paddleocr_version = self.make_pref_var(utils.CONFIG.paddleocr_version)
-        ttk.Combobox(
-            models_frame,
-            textvariable=self.paddleocr_version,
-            values=["PP-OCRv3", "PP-OCRv4", "PP-OCRv5"],
-            state="readonly",
-            width=self.combobox_size
-        ).grid(column=1, row=0)
-
-        self.use_gpu = self.make_pref_var(utils.CONFIG.use_gpu)
-        ttk.Checkbutton(
-            models_frame,
-            text='Use GPU If Available',
-            variable=self.use_gpu
-        ).grid(column=0, row=1)
-
-        self.use_mobile_model = self.make_pref_var(utils.CONFIG.use_mobile_model)
-        ttk.Checkbutton(
-            models_frame,
-            text='Use Mobile Model',
-            variable=self.use_mobile_model
-        ).grid(column=1, row=1)
-
-        self.use_text_ori = self.make_pref_var(utils.CONFIG.use_text_ori)
-        ttk.Checkbutton(
-            models_frame,
-            text='Use Text Line Orientation Model',
-            variable=self.use_text_ori
-        ).grid(column=1, row=2, pady=self.wgt_y_padding)
-
-    def _model_performance_tab(self) -> None:
-        model_performance_frame = ttk.Frame(self.notebook_tab)
-        model_performance_frame.grid(column=0, row=0)
-        model_performance_frame.grid_columnconfigure(0, weight=1)
-        model_performance_frame.grid_columnconfigure(1, weight=1)
-        self.notebook_tab.add(model_performance_frame, text="Model Performance")
-
-        ttk.Label(model_performance_frame, text="CPU OCR Processes:").grid(column=0, row=0, pady=self.wgt_y_padding)
-        self.cpu_ocr_processes = self.make_pref_var(utils.CONFIG.cpu_ocr_processes)
-        ttk.Spinbox(
-            model_performance_frame,
-            from_=1, to=cpu_count(),
-            textvariable=self.cpu_ocr_processes,
-            state="readonly",
-            width=self.spinbox_size
-        ).grid(column=1, row=0)
-
-        ttk.Label(model_performance_frame, text="CPU ONNX Intra Threads:").grid(column=0, row=1)
-        self.cpu_onnx_intra_threads = self.make_pref_var(utils.CONFIG.cpu_onnx_intra_threads)
-        ttk.Spinbox(
-            model_performance_frame,
-            from_=1, to=cpu_count(),
-            textvariable=self.cpu_onnx_intra_threads,
-            state="readonly",
-            width=self.spinbox_size
-        ).grid(column=1, row=1)
-
-        ttk.Label(model_performance_frame, text="GPU OCR Processes:").grid(column=0, row=2, pady=self.wgt_y_padding)
-        self.gpu_ocr_processes = self.make_pref_var(utils.CONFIG.gpu_ocr_processes)
-        ttk.Spinbox(
-            model_performance_frame,
-            from_=1, to=cpu_count(),
-            textvariable=self.gpu_ocr_processes,
-            state="readonly",
-            width=self.spinbox_size
-        ).grid(column=1, row=2)
-
-        ttk.Label(model_performance_frame, text="GPU ONNX Intra Threads:").grid(column=0, row=3)
-        self.gpu_onnx_intra_threads = self.make_pref_var(utils.CONFIG.gpu_onnx_intra_threads)
-        ttk.Spinbox(
-            model_performance_frame,
-            from_=1, to=cpu_count(),
-            textvariable=self.gpu_onnx_intra_threads,
-            state="readonly",
-            width=self.spinbox_size
-        ).grid(column=1, row=3)
 
     def _set_reset_button(self, *args) -> None:
         """
