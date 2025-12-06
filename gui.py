@@ -812,6 +812,7 @@ class SubtitleExtractorGUI:
         self.thread_running = True
         try:
             setup_ocr()
+            start_time = perf_counter()
             for video, sub_info in self.video_queue.items():
                 sub_area, start_frame, stop_frame = sub_info[0], sub_info[1], sub_info[2]
                 start_frame = int(start_frame) if start_frame else start_frame
@@ -826,9 +827,12 @@ class SubtitleExtractorGUI:
                 self.video_label.configure(text=f"{self.progress_bar['value']} of {queue_len} Video(s) Completed")
         except Exception as error:
             logger.exception(f"\nAn error occurred while extracting subtitles! \nError: {error}")
+            start_time = perf_counter()
         self.thread_running = False
         self._stop_sub_extraction_process()
-        self.send_notification("Subtitle Extraction Completed!")
+        done = f"Subtitle Extraction Completed! Total Duration: {timedelta(seconds=round(perf_counter() - start_time))}"
+        self.send_notification(done)
+        logger.info(f"{done}\n")
 
     def _stop_sub_extraction_process(self) -> None:
         """
