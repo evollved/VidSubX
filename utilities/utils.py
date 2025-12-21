@@ -35,9 +35,6 @@ def get_physical_cores() -> int:
 
 class Config:
     physical_cores = get_physical_cores()
-    cpu_procs = max(1, physical_cores // 2)
-    gpu_procs = max(2, min(8, physical_cores // 4))
-
     config_schema = {
         "Frame Extraction": {
             "frame_extraction_frequency": (int, 2),
@@ -75,11 +72,10 @@ class Config:
             "use_text_ori": (bool, False),
         },
         "OCR Performance": {
-            "cpu_ocr_processes": (int, cpu_procs),
-            "cpu_onnx_intra_threads": (int, max(2, min(16, (physical_cores * 3) // cpu_procs))),
-            "gpu_ocr_processes": (int, gpu_procs),
-            "gpu_onnx_intra_threads": (int, max(4, min(24, (physical_cores * 5) // (2 * gpu_procs)))),
-            # todo: write code that can detect cpu/gpu usage and auto adjust processes and intra threads for the best performance
+            "cpu_ocr_processes": (int, physical_cores // 2),
+            "cpu_onnx_intra_threads": (int, max(4, physical_cores // 4)),
+            "gpu_ocr_processes": (int, max(2, physical_cores // 3)),
+            "gpu_onnx_intra_threads": (int, max(6, physical_cores // 2)),
             "auto_optimize_perf": (bool, True),
         },
     }

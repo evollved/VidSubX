@@ -8,6 +8,7 @@ import onnxruntime as ort
 from custom_ocr import CustomPaddleOCR, TextDetection
 
 import utilities.utils as utils
+from .auto_perf_opti import PerformanceOptimiser, NullPerformanceOptimiser
 
 logging.getLogger("custom_ocr").setLevel(logging.INFO)
 
@@ -97,9 +98,12 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     file_batches = [files[i:i + batch_size] for i in range(0, len(files), batch_size)]
     no_batches = len(file_batches)
     logger.info(f"Starting Multiprocess {prefix} from frames on {device}, Batches: {no_batches}.")
+    optimizer = PerformanceOptimiser() if utils.CONFIG.auto_optimize_perf else NullPerformanceOptimiser()
     with ThreadPoolExecutor(no_processes) as executor:
         futures = [executor.submit(extract_text, ocr_engine, text_output, files, line_sep) for files in file_batches]
         for i, f in enumerate(as_completed(futures)):  # as each  process completes
             f.result()  # Prevents silent bugs. Exceptions raised will be displayed.
             utils.print_progress(i, no_batches - 1, prefix)
+            optimizer.record_perf()
+    optimizer.optimise_performance()
     logger.info(f"{prefix} done!")

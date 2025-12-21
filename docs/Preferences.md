@@ -88,7 +88,6 @@ if GPU is available. Using too many will cause a crash if GPU memory is not enou
 optimal values that provide high utilization of CPU or GPU.
 
 **Auto Optimize Performance**: The OCR processes and onnx threads will be auto adjusted to allow optimal CPU/GPU usage.
-_Not yet implemented_.
 
 ### Subtitle Generator
 
