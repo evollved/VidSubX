@@ -21,8 +21,8 @@ def setup_ocr() -> None:
     utils.CONFIG.ocr_opts["use_mobile_model"] = utils.CONFIG.use_mobile_model
     utils.CONFIG.ocr_opts["use_textline_orientation"] = utils.CONFIG.use_text_ori
 
-    download_models()
     setup_ocr_device()
+    download_models()
 
 
 def setup_ocr_device() -> None:

@@ -73,7 +73,7 @@ class Config:
         },
         "OCR Performance": {
             "cpu_ocr_processes": (int, physical_cores // 2),
-            "cpu_onnx_intra_threads": (int, max(4, physical_cores // 4)),
+            "cpu_onnx_intra_threads": (int, max(4, int(physical_cores / 2.5))),
             "gpu_ocr_processes": (int, max(2, physical_cores // 3)),
             "gpu_onnx_intra_threads": (int, max(6, physical_cores // 2)),
             "auto_optimize_perf": (bool, True),

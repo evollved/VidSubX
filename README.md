@@ -66,6 +66,10 @@ pip install custom_ocr[full]@git+https://github.com/voun7/CustomPaddleOCR.git@1.
 pip install psutil
 ```
 
+```
+pip install nvidia-ml-py
+```
+
 Run `gui.py` to use Graphical interface and `main.py` to use Terminal.
 
 ### Compile Instructions
