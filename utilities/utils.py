@@ -75,7 +75,7 @@ class Config:
             "cpu_ocr_processes": (int, physical_cores // 2),
             "cpu_onnx_intra_threads": (int, max(4, int(physical_cores / 2.5))),
             "gpu_ocr_processes": (int, max(2, physical_cores // 3)),
-            "gpu_onnx_intra_threads": (int, max(6, physical_cores // 2)),
+            "gpu_onnx_intra_threads": (int, 1),
             "auto_optimize_perf": (bool, True),
         },
     }

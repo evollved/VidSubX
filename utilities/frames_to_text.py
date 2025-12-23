@@ -55,7 +55,7 @@ def extract_bboxes(files: Path) -> list:
     """
     model_name = f"{utils.CONFIG.paddleocr_version}_{'mobile' if utils.CONFIG.use_mobile_model else 'server'}_det"
     det_config = {"model_save_dir": utils.CONFIG.ocr_opts["model_save_dir"], "model_name": model_name,
-                  "box_thresh": utils.CONFIG.bbox_drop_score}
+                  "box_thresh": utils.CONFIG.bbox_drop_score, "use_gpu": utils.CONFIG.ocr_opts["use_gpu"]}
     ocr_engine = TextDetection(**det_config)
     results = ocr_engine.predict_iter(str(files))
     boxes = [box for result in results for box in result["dt_polys"]]

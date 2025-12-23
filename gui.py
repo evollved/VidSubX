@@ -1223,7 +1223,7 @@ class PreferencesUI(tk.Toplevel):
         self.cpu_onnx_intra_threads = self.make_pref_var(utils.CONFIG.cpu_onnx_intra_threads)
         self.cpu_onnx_intra_threads_sb = ttk.Spinbox(
             model_performance_frame,
-            from_=1, to=cpu_count(),
+            from_=0, to=cpu_count(),
             textvariable=self.cpu_onnx_intra_threads,
             state="readonly",
             width=self.spinbox_size
@@ -1245,7 +1245,7 @@ class PreferencesUI(tk.Toplevel):
         self.gpu_onnx_intra_threads = self.make_pref_var(utils.CONFIG.gpu_onnx_intra_threads)
         self.gpu_onnx_intra_threads_sb = ttk.Spinbox(
             model_performance_frame,
-            from_=1, to=cpu_count(),
+            from_=0, to=cpu_count(),
             textvariable=self.gpu_onnx_intra_threads,
             state="readonly",
             width=self.spinbox_size

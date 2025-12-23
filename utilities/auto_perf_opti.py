@@ -19,26 +19,23 @@ class NullPerformanceOptimiser:
 class PerformanceOptimiser:
 
     def __init__(self) -> None:
-        self.cpu_ocr_processes = self.gpu_ocr_processes = None
-        self.values = ("cpu_ocr_processes", "cpu_onnx_intra_threads", "gpu_ocr_processes", "gpu_onnx_intra_threads")
-        # todo: Implement code that can modify the intra threads as needed to increase performance
-        for val in self.values:
-            setattr(self, val, getattr(utils.CONFIG, val))
-
-        psutil.cpu_percent()  # Prime cpu_percent (important!)
+        self.cpu_ocr_processes = utils.CONFIG.cpu_ocr_processes
+        self.gpu_ocr_processes = utils.CONFIG.gpu_ocr_processes
         self.use_gpu = utils.CONFIG.ocr_opts["use_gpu"]
         if self.use_gpu:
             pynvml.nvmlInit()
-        self.cpu_percentages, self.gpu_percentages = [], []
+        else:
+            psutil.cpu_percent()  # Prime cpu_percent (important!)
+        self.percentages = []
 
     def _get_cpu_usage(self) -> None:
         usage = psutil.cpu_percent()
-        self.cpu_percentages.append(usage)
+        self.percentages.append(usage)
 
     def _get_gpu_usage(self, gpu_id: int = 0) -> None:
         handle = pynvml.nvmlDeviceGetHandleByIndex(gpu_id)
         utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
-        self.gpu_percentages.append(utilization.gpu)
+        self.percentages.append(utilization.gpu)
 
     def record_perf(self) -> None:
         if self.use_gpu:
@@ -48,8 +45,8 @@ class PerformanceOptimiser:
 
     def _optimize_cpu_usage(self) -> None:
         logger.debug("Optimizing CPU usage...")
-        self.cpu_percentages.pop()  # Remove the cpu percentage from the last batch
-        cpu_util = sum(self.cpu_percentages) / len(self.cpu_percentages)
+        self.percentages.pop()  # Remove the cpu percentage from the last batch
+        cpu_util = sum(self.percentages) / len(self.percentages)
         usage = f"Average CPU Usage: {cpu_util:.2f}%."
         if cpu_util < 80 and self.cpu_ocr_processes < utils.get_physical_cores():
             logger.info(f"{usage} Increasing cores used!")
@@ -62,8 +59,8 @@ class PerformanceOptimiser:
 
     def _optimize_gpu_usage(self) -> None:
         logger.debug("Optimizing GPU usage...")
-        self.gpu_percentages.pop()
-        gpu_util = sum(self.gpu_percentages) / len(self.gpu_percentages)
+        self.percentages.pop()
+        gpu_util = sum(self.percentages) / len(self.percentages)
         usage = f"Average GPU Usage: {gpu_util:.2f}%."
         if gpu_util < 40:
             logger.info(f"{usage} Increasing cores used!")
@@ -75,18 +72,19 @@ class PerformanceOptimiser:
             logger.debug(usage)
 
     def _changes_made(self) -> bool:
-        return any(getattr(self, val) != getattr(utils.CONFIG, val) for val in self.values)
+        return (utils.CONFIG.cpu_ocr_processes != self.cpu_ocr_processes or
+                utils.CONFIG.gpu_ocr_processes != self.gpu_ocr_processes)
 
     def _save_perf_optimisations(self) -> None:
         if not self._changes_made():
             return
-        logger.debug("Saving performance optimisations")
-        utils.CONFIG.set_config(**{val: getattr(self, val) for val in self.values})
+        logger.debug("Saving performance optimisations!")
+        utils.CONFIG.set_config(cpu_ocr_processes=self.cpu_ocr_processes, gpu_ocr_processes=self.gpu_ocr_processes)
 
     def optimise_performance(self) -> None:
         if self.use_gpu:
-            self._optimize_gpu_usage()
             pynvml.nvmlShutdown()
+            self._optimize_gpu_usage()
         else:
             self._optimize_cpu_usage()
         self._save_perf_optimisations()
