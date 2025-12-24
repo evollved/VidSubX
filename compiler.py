@@ -35,16 +35,39 @@ def uninstall_package(name: str) -> None:
 def download_all_models() -> None:
     from custom_ocr import CustomPaddleOCR
 
-    languages = []  # todo: ocr version and type should be used
-    for lang in languages:
-        print(f"\nChecking for {lang} language models...")
-        _ = CustomPaddleOCR(lang=lang, **utils.CONFIG.ocr_opts)
+    txt_line_ori_models = ["PP-LCNet_x0_25_textline_ori", "PP-LCNet_x1_0_textline_ori"]
+    det_models = ['PP-OCRv3_mobile_det', 'PP-OCRv3_server_det', 'PP-OCRv4_mobile_det', 'PP-OCRv4_server_det',
+                  'PP-OCRv5_mobile_det', 'PP-OCRv5_server_det']
+    rec_models = ['PP-OCRv3_mobile_rec', 'PP-OCRv4_mobile_rec', 'PP-OCRv4_server_rec', 'PP-OCRv5_mobile_rec',
+                  'PP-OCRv5_server_rec', 'arabic_PP-OCRv3_mobile_rec', 'arabic_PP-OCRv5_mobile_rec',
+                  'chinese_cht_PP-OCRv3_mobile_rec', 'cyrillic_PP-OCRv3_mobile_rec', 'cyrillic_PP-OCRv5_mobile_rec',
+                  'devanagari_PP-OCRv3_mobile_rec', 'devanagari_PP-OCRv5_mobile_rec', 'en_PP-OCRv3_mobile_rec',
+                  'en_PP-OCRv4_mobile_rec', 'en_PP-OCRv5_mobile_rec', 'eslav_PP-OCRv5_mobile_rec',
+                  'japan_PP-OCRv3_mobile_rec', 'ka_PP-OCRv3_mobile_rec', 'korean_PP-OCRv3_mobile_rec',
+                  'korean_PP-OCRv5_mobile_rec', 'latin_PP-OCRv3_mobile_rec', 'latin_PP-OCRv5_mobile_rec',
+                  'ta_PP-OCRv3_mobile_rec', 'ta_PP-OCRv5_mobile_rec', 'te_PP-OCRv3_mobile_rec',
+                  'te_PP-OCRv5_mobile_rec']
+    utils.CONFIG.ocr_opts["use_gpu"] = False
+    for model in txt_line_ori_models:
+        print(f"\nChecking for {model} model...")
+        _ = CustomPaddleOCR(textline_orientation_model_name=model, **utils.CONFIG.ocr_opts)
+        print("-" * 150)
+    print("-" * 200)
+    for model in det_models:
+        print(f"\nChecking for {model} model...")
+        _ = CustomPaddleOCR(text_detection_model_name=model, **utils.CONFIG.ocr_opts)
+        print("-" * 150)
+    print("-" * 200)
+    for model in rec_models:
+        print(f"\nChecking for {model} model...")
+        _ = CustomPaddleOCR(text_recognition_model_name=model, **utils.CONFIG.ocr_opts)
+        print("-" * 150)
 
 
 def remove_non_onnx_models() -> None:
     print("\nRemoving all non Onnx Models...")
-    for file in utils.CONFIG.model_dir.rglob("*.*"):
-        if not file.is_dir() and file.name != "model.onnx":
+    for file in utils.CONFIG.model_dir.rglob("*"):
+        if file.is_file() and ".onnx" not in file.name and ".yml" not in file.name:
             print(f"Removing file: {file}")
             file.unlink()
 
@@ -55,14 +78,14 @@ def compile_program() -> None:
         "--standalone",
         "--enable-plugin=tk-inter",
         "--windows-console-mode=disable",
-        "--include-package-data=paddleocr",
-        "--include-data-files=vsx.ico=vsx.ico",
+        "--include-package-data=custom_ocr",
+        "--include-data-files=docs/images/vsx.ico=docs/images/vsx.ico",
         "--include-data-dir=models=models",
-        "--windows-icon-from-ico=vsx.ico",
+        "--windows-icon-from-ico=docs/images/vsx.ico",
         "--remove-output",
         "gui.py"
     ]
-    print(f"\nCompiling program with Nuitka... \nCommand: {cmd}")
+    print(f"\nCompiling program with Nuitka... \nCommand: {' '.join(cmd)}")
     run_command(cmd, True)
 
 
@@ -98,16 +121,16 @@ def main(gpu_enabled: bool = True) -> None:
 
     if gpu_enabled:
         uninstall_package("onnxruntime")
-        install_package("onnxruntime-gpu[cuda,cudnn]==1.21.0")
+        install_package("onnxruntime-gpu[cuda,cudnn]==1.23.2")
     else:
         uninstall_package("onnxruntime-gpu")
-        install_package("onnxruntime==1.21.0")
-    install_requirements()
-    install_package("Nuitka==2.6.9")
+        install_package("onnxruntime==1.23.2")
+    install_package("custom_ocr[full]@git+https://github.com/voun7/CustomPaddleOCR.git@1.0")
+    install_package("psutil")
+    install_package("nvidia-ml-py")
+    install_package("Nuitka==2.8.1")
     download_all_models()
     remove_non_onnx_models()
-    uninstall_package("paddlepaddle")
-    uninstall_package("requests")
     compile_program()
     rename_exe()
     if gpu_enabled:
