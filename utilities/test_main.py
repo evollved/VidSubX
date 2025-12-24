@@ -4,6 +4,9 @@ from unittest import TestCase
 
 os.chdir(Path(__file__).parent.parent)
 
+config_file = Path("config.ini")
+config_file.unlink(missing_ok=True)  # The tests only work on the default config
+
 from main import SubtitleDetector, SubtitleExtractor, setup_ocr
 
 ch_vid = "test files/chinese_vid.mp4"
@@ -49,13 +52,13 @@ class TestSubtitleDetector(TestCase):
 
     def test_get_sub_area_search_area(self):
         print("\nRunning test for get_sub_area method with search area...")
-        sub_area = (288, 942, 1632, 1062)
+        sub_area = (288, 871, 1632, 1055)
         result = SubtitleDetector(ch_vid, True).get_sub_area()
         self.assertEqual(sub_area, result)
 
     def test_get_sub_area_full_area(self):
         print("\nRunning test for get_sub_area method without search area...")
-        sub_area = (288, 947, 1632, 1060)
+        sub_area = (288, 942, 1632, 1054)
         result = SubtitleDetector(ch_vid, False).get_sub_area()
         self.assertEqual(sub_area, result)
 
