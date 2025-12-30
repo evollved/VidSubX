@@ -5,6 +5,7 @@ import subprocess
 from datetime import timedelta
 from pathlib import Path
 from time import perf_counter
+from zipfile import ZipFile, ZIP_LZMA
 
 import utilities.utils as utils
 
@@ -72,7 +73,7 @@ def remove_non_onnx_models() -> None:
             file.unlink()
 
 
-def compile_program() -> None:
+def compile_program(download_models: bool) -> None:
     cmd = [
         "nuitka",
         "--standalone",
@@ -80,11 +81,17 @@ def compile_program() -> None:
         "--windows-console-mode=disable",
         "--include-package-data=custom_ocr",
         "--include-data-files=docs/images/vsx.ico=docs/images/vsx.ico",
-        "--include-data-dir=models=models",
         "--windows-icon-from-ico=docs/images/vsx.ico",
-        "--remove-output",
-        "gui.py"
+        "--remove-output"
     ]
+    if download_models:
+        cmd.append("--include-data-dir=models=models")
+    else:
+        cmd.extend([
+            "--include-package=paddle2onnx",
+            rf"--include-data-files={site.getsitepackages()[0]}\Scripts\paddle2onnx.exe=paddle2onnx.exe",
+        ])
+    cmd.append("gui.py")
     print(f"\nCompiling program with Nuitka... \nCommand: {' '.join(cmd)}")
     run_command(cmd, True)
 
@@ -98,17 +105,21 @@ def rename_exe() -> None:
 def get_gpu_files() -> None:
     print("\nCopying GPU files...")
     gpu_files_dir = Path(site.getsitepackages()[1], "nvidia")
-    required_dirs = ["cudnn", "cufft", "cublas", "cuda_runtime"]
-    if platform.system() == "Linux":
-        required_dirs.extend(["cuda_nvrtc", "curand"])
+    required_dirs = ["cudnn", "cufft", "cublas", "cuda_runtime", "cuda_nvrtc"]
     for dir_name in required_dirs:
-        shutil.copytree(gpu_files_dir / dir_name, f"gui.dist/nvidia/{dir_name}")
+        shutil.copytree(gpu_files_dir / f"{dir_name}/bin", f"gui.dist/nvidia/{dir_name}/bin")
 
 
-def zip_files(gpu_enabled: bool) -> None:
+def zip_files(gpu_enabled: bool, download_models: bool) -> None:
     print("\nZipping distribution files...")
     name = f"VSX-{platform.system()}-{'GPU' if gpu_enabled else 'CPU'}-v"
-    shutil.make_archive(name, "zip", "gui.dist")
+    directory = Path("gui.dist")
+    if download_models:  # The distribution files will be compressed to reduce the size when the model is included
+        with ZipFile(f"{name}.zip", "w", ZIP_LZMA) as archive:  # 7z program will be needed for extraction
+            for file_path in directory.rglob("*"):
+                archive.write(file_path, arcname=file_path.relative_to(directory))
+    else:
+        shutil.make_archive(name, "zip", directory)
 
 
 def delete_dist_dir() -> None:
@@ -116,7 +127,7 @@ def delete_dist_dir() -> None:
     shutil.rmtree("gui.dist")
 
 
-def main(gpu_enabled: bool = True) -> None:
+def main(gpu_enabled: bool, download_models: bool) -> None:
     start_time = perf_counter()
 
     if gpu_enabled:
@@ -125,21 +136,25 @@ def main(gpu_enabled: bool = True) -> None:
     else:
         uninstall_package("onnxruntime-gpu")
         install_package("onnxruntime==1.23.2")
+
     install_package("custom_ocr[full]@git+https://github.com/voun7/CustomPaddleOCR.git@1.0")
     install_package("psutil")
     install_package("nvidia-ml-py")
     install_package("Nuitka==2.8.1")
-    download_all_models()
-    remove_non_onnx_models()
-    compile_program()
+
+    if download_models:
+        download_all_models()
+        remove_non_onnx_models()
+
+    compile_program(download_models)
     rename_exe()
     if gpu_enabled:
         get_gpu_files()
-    zip_files(gpu_enabled)
+    zip_files(gpu_enabled, download_models)
     delete_dist_dir()
 
     print(f"\nCompilation Duration: {timedelta(seconds=round(perf_counter() - start_time))}")
 
 
 if __name__ == '__main__':
-    main()
+    main(True, False)
