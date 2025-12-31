@@ -110,7 +110,8 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     file_batches = [files[i:i + batch_size] for i in range(0, len(files), batch_size)]
     no_batches = len(file_batches)
     logger.info(f"Starting Multiprocess {prefix} from frames on {device}, Batches: {no_batches}.")
-    optimizer = PerformanceOptimiser() if utils.CONFIG.auto_optimize_perf else NullPerformanceOptimiser()
+    opt_config = {"cpu_min": 80 if no_batches > 30 else 70, "gpu_min": 40 if no_batches > 30 else 30}
+    optimizer = PerformanceOptimiser(**opt_config) if utils.CONFIG.auto_optimize_perf else NullPerformanceOptimiser()
     with ThreadPoolExecutor(no_processes) as executor:
         futures = [executor.submit(extract_text, ocr_engine, text_output, files, line_sep) for files in file_batches]
         for i, f in enumerate(as_completed(futures)):  # as each  process completes

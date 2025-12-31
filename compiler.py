@@ -7,8 +7,6 @@ from pathlib import Path
 from time import perf_counter
 from zipfile import ZipFile, ZIP_LZMA
 
-import utilities.utils as utils
-
 
 def run_command(command: list, use_shell: bool = False) -> None:
     subprocess.run(command, check=True, shell=use_shell)
@@ -30,10 +28,11 @@ def uninstall_package(name: str) -> None:
         print("\nRemoving undeleted temp directory...")
         shutil.rmtree(temp_dir, ignore_errors=True)
     print(f"\n...Uninstalling package {name}...")
-    run_command(["pip", "uninstall", name])
+    run_command(["pip", "uninstall", "-y", name])
 
 
 def download_all_models() -> None:
+    import utilities.utils as utils
     from custom_ocr import CustomPaddleOCR
 
     txt_line_ori_models = ["PP-LCNet_x0_25_textline_ori", "PP-LCNet_x1_0_textline_ori"]
@@ -66,6 +65,8 @@ def download_all_models() -> None:
 
 
 def remove_non_onnx_models() -> None:
+    import utilities.utils as utils
+
     print("\nRemoving all non Onnx Models...")
     for file in utils.CONFIG.model_dir.rglob("*"):
         if file.is_file() and ".onnx" not in file.name and ".yml" not in file.name:
@@ -157,4 +158,5 @@ def main(gpu_enabled: bool, download_models: bool) -> None:
 
 
 if __name__ == '__main__':
+    main(False, False)
     main(True, False)

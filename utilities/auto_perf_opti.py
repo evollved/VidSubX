@@ -18,7 +18,9 @@ class NullPerformanceOptimiser:
 
 class PerformanceOptimiser:
 
-    def __init__(self) -> None:
+    def __init__(self, cpu_min: int = 80, cpu_max: int = 95, gpu_min: int = 40, gpu_max: int = 65) -> None:
+        self.cpu_min, self.cpu_max = cpu_min, cpu_max
+        self.gpu_min, self.gpu_max = gpu_min, gpu_max
         self.cpu_ocr_processes = utils.CONFIG.cpu_ocr_processes
         self.gpu_ocr_processes = utils.CONFIG.gpu_ocr_processes
         self.use_gpu = utils.CONFIG.ocr_opts["use_gpu"]
@@ -48,10 +50,10 @@ class PerformanceOptimiser:
         self.percentages.pop()  # Remove the cpu percentage from the last batch
         cpu_util = sum(self.percentages) / len(self.percentages)
         usage = f"Average CPU Usage: {cpu_util:.2f}%."
-        if cpu_util < 80 and self.cpu_ocr_processes < utils.get_physical_cores():
+        if cpu_util < self.cpu_min and self.cpu_ocr_processes < utils.get_physical_cores():
             logger.info(f"{usage} Increasing cores used!")
             self.cpu_ocr_processes += 1
-        elif cpu_util > 95:
+        elif cpu_util > self.cpu_max:
             logger.warning(f"{usage} Decreasing cores used!")
             self.cpu_ocr_processes -= 1
         else:
@@ -62,10 +64,10 @@ class PerformanceOptimiser:
         self.percentages.pop()
         gpu_util = sum(self.percentages) / len(self.percentages)
         usage = f"Average GPU Usage: {gpu_util:.2f}%."
-        if gpu_util < 40:
+        if gpu_util < self.gpu_min:
             logger.info(f"{usage} Increasing cores used!")
             self.gpu_ocr_processes += 1
-        elif gpu_util > 65:
+        elif gpu_util > self.gpu_max:
             logger.warning(f"{usage} Decreasing cores used!")
             self.gpu_ocr_processes -= 1
         else:
