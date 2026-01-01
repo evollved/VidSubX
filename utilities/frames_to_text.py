@@ -1,6 +1,4 @@
-import ctypes
 import logging
-import site
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -25,24 +23,10 @@ def setup_ocr() -> None:
     download_models()
 
 
-def load_nvrtc64_120_0_dll() -> None:
-    """
-    Fixes the "Could not locate nvrtc64_120_0.dll" Warning Message
-    """
-    nvrtc_path = "nvidia/cuda_nvrtc/bin/nvrtc64_120_0.dll"
-    if package_dirs := site.getsitepackages():
-        nvrtc_path = f"{package_dirs[1]}/{nvrtc_path}"
-    else:
-        nvrtc_path = f"./{nvrtc_path}"
-    if Path(nvrtc_path).exists():
-        ctypes.CDLL(nvrtc_path)
-
-
 def setup_ocr_device() -> None:
     sess_opt = ort.SessionOptions()
     if utils.CONFIG.use_gpu and "CUDAExecutionProvider" in ort.get_available_providers():
         utils.CONFIG.ocr_opts["use_gpu"] = True
-        load_nvrtc64_120_0_dll()
         ort.preload_dlls()
         sess_opt.intra_op_num_threads = utils.CONFIG.gpu_onnx_intra_threads
     else:

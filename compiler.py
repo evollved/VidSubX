@@ -12,9 +12,9 @@ def run_command(command: list, use_shell: bool = False) -> None:
     subprocess.run(command, check=True, shell=use_shell)
 
 
-def install_requirements() -> None:
+def install_requirements(device: str) -> None:
     print("\nInstalling requirements...")
-    run_command(['pip', 'install', '-r', 'requirements.txt'])
+    run_command(['pip', 'install', '-r', f'requirements-{device}.txt'])
 
 
 def install_package(name: str) -> None:
@@ -106,7 +106,7 @@ def rename_exe() -> None:
 def get_gpu_files() -> None:
     print("\nCopying GPU files...")
     gpu_files_dir = Path(site.getsitepackages()[1], "nvidia")
-    required_dirs = ["cudnn", "cufft", "cublas", "cuda_runtime", "cuda_nvrtc"]
+    required_dirs = ["cudnn", "cufft", "cublas", "cuda_runtime"]
     for dir_name in required_dirs:
         shutil.copytree(gpu_files_dir / f"{dir_name}/bin", f"gui.dist/nvidia/{dir_name}/bin")
 
@@ -133,14 +133,10 @@ def main(gpu_enabled: bool, download_models: bool) -> None:
 
     if gpu_enabled:
         uninstall_package("onnxruntime")
-        install_package("onnxruntime-gpu[cuda,cudnn]==1.23.2")
+        install_requirements("gpu")
     else:
         uninstall_package("onnxruntime-gpu")
-        install_package("onnxruntime==1.23.2")
-
-    install_package("custom_ocr[full]@git+https://github.com/voun7/CustomPaddleOCR.git@1.0")
-    install_package("psutil")
-    install_package("nvidia-ml-py")
+        install_requirements("cpu")
     install_package("Nuitka==2.8.1")
 
     if download_models:

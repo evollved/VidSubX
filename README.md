@@ -16,6 +16,9 @@ A free program that extracts hard coded subtitles from a video and generates an 
 - Start and Stop subtitle extraction positions can be selected (use arrow keys for precise selection).
 - Resize video display (Zoom In (Ctrl+Plus), Zoom Out (Ctrl+Minus)).
 - Non subtitle area of the video can be hidden to limit spoilers.
+- GPU can be used to speed up the extraction of the subtitles.
+- Auto optimization for CPU & GPU config for best performance.
+- The released copies can be run without having python installed.
 - Toast Notification available on Windows upon completion of subtitle detection and extraction.
 - [Preferences docs](docs/Preferences.md) available for modification of options when extraction subtitles.
 - Multiple languages supported through [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR). They will be
@@ -23,7 +26,7 @@ A free program that extracts hard coded subtitles from a video and generates an 
 
 **[Supported languages and Abbreviations](docs/Supported_Languages.md)**
 
-### Generated subtitles can be translated with this [script](https://github.com/voun7/Subtitle_Translator).
+### Generated subtitles can be translated with this [script](https://github.com/voun7/Subtitle_Translator) or [SubtitleEdit](https://github.com/SubtitleEdit/subtitleedit).
 
 ### Download
 
@@ -47,28 +50,16 @@ installed. The program will not start without it.
 For GPU
 
 ```
-pip install onnxruntime-gpu[cuda,cudnn]==1.23.2
+pip install -r requirements-gpu.txt
 ```
 
 For CPU
 
 ```
-pip install onnxruntime
+pip install -r requirements-cpu.txt
 ```
 
-Other packages
-
-```
-pip install custom_ocr[full]@git+https://github.com/voun7/CustomPaddleOCR.git@1.0 
-```
-
-```
-pip install psutil
-```
-
-```
-pip install nvidia-ml-py
-```
+**_Note:_** `onnxruntime` and `onnxruntime-gpu` should not both be installed at the same time.
 
 Run `gui.py` to use Graphical interface and `main.py` to use Terminal.
 

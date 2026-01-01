@@ -65,8 +65,8 @@ work properly if the OCR detects a lot of space on the same line of text.
 
 **Use GPU if available**: The GPU will be used to speed up the text extraction if available.
 
-**Use Mobile Model**: Determines whether the server or mobile version of the model is used. The server model is slow but
-has higher accuracy while the mobile model is fast but has a lower accuracy.
+**Use Mobile Model**: Determines whether the server or mobile version of the model is used. The server model is very
+slow but has higher accuracy while the mobile model is fast but has a lower accuracy.
 
 **Use Text Line Orientation Model**: Enabling this option allows the use of a model to determine the orientation of a
 text and rotate it if needed before passing it to the recognition model. This should be used if any text in the video
