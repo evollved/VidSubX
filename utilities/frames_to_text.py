@@ -24,15 +24,14 @@ def setup_ocr() -> None:
 
 
 def setup_ocr_device() -> None:
-    sess_opt = ort.SessionOptions()
     if utils.CONFIG.use_gpu and "CUDAExecutionProvider" in ort.get_available_providers():
         utils.CONFIG.ocr_opts["use_gpu"] = True
         ort.preload_dlls()
-        sess_opt.intra_op_num_threads = utils.CONFIG.gpu_onnx_intra_threads
     else:
         utils.CONFIG.ocr_opts["use_gpu"] = False
+        sess_opt = ort.SessionOptions()
         sess_opt.intra_op_num_threads = utils.CONFIG.cpu_onnx_intra_threads
-    utils.CONFIG.ocr_opts["onnx_sess_options"] = sess_opt
+        utils.CONFIG.ocr_opts["onnx_sess_options"] = sess_opt
 
 
 def download_models() -> None:
@@ -94,8 +93,7 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     file_batches = [files[i:i + batch_size] for i in range(0, len(files), batch_size)]
     no_batches = len(file_batches)
     logger.info(f"Starting Multiprocess {prefix} from frames on {device}, Batches: {no_batches}.")
-    opt_config = {"cpu_min": 80 if no_batches > 30 else 70, "gpu_min": 40 if no_batches > 30 else 30}
-    optimizer = PerformanceOptimiser(**opt_config) if utils.CONFIG.auto_optimize_perf else NullPerformanceOptimiser()
+    optimizer = PerformanceOptimiser() if utils.CONFIG.auto_optimize_perf else NullPerformanceOptimiser()
     with ThreadPoolExecutor(no_processes) as executor:
         futures = [executor.submit(extract_text, ocr_engine, text_output, files, line_sep) for files in file_batches]
         for i, f in enumerate(as_completed(futures)):  # as each  process completes

@@ -17,7 +17,7 @@ A free program that extracts hard coded subtitles from a video and generates an 
 - Resize video display (Zoom In (Ctrl+Plus), Zoom Out (Ctrl+Minus)).
 - Non subtitle area of the video can be hidden to limit spoilers.
 - GPU can be used to speed up the extraction of the subtitles.
-- Auto optimization for CPU & GPU config for best performance.
+- Auto optimization for CPU config for best performance.
 - The released copies can be run without having python installed.
 - Toast Notification available on Windows upon completion of subtitle detection and extraction.
 - [Preferences docs](docs/Preferences.md) available for modification of options when extraction subtitles.

@@ -80,14 +80,14 @@ is not horizontal.
 too many will increase extraction time.
 
 **OCR GPU Processes**: The number of GPU processes to be used for extraction of text from the video. Used only
-if GPU is available. Using too many will cause a crash if GPU memory is not enough.
+if GPU is available. Using too many will cause a performance decrease due to oversubscription.
 
-**Onnx Intra Threads**: The number of threads used by Onnx to parallelize the execution within nodes for the CPU/GPU.
+**Onnx Intra Threads**: The number of threads used by Onnx to parallelize the execution within nodes for the CPU.
 
 **_Note:_** Onnx Intra Threads & OCR Processes might require some testing with different values to determine the
-optimal values that provide high utilization of CPU or GPU.
+optimal values that provide high utilization of the CPU.
 
-**Auto Optimize Performance**: The OCR processes and onnx threads will be auto adjusted to allow optimal CPU/GPU usage.
+**Auto Optimize Performance**: The OCR processes and onnx threads will be auto adjusted to allow optimal CPU usage.
 
 ### Subtitle Generator
 
