@@ -178,6 +178,19 @@ class SubtitleExtractor:
         x1, y1, x2, y2 = 0, int(frame_height * utils.CONFIG.subarea_height_scaler), frame_width, frame_height
         return x1, y1, x2, y2
 
+    @staticmethod
+    def clamp_sub_area(sub_area: tuple, frame_width: int, frame_height: int) -> tuple:
+        """
+        Prevent the subtitle area from being out of bounds.
+        """
+        x1, y1, x2, y2 = sub_area
+        # Clamp all coordinates
+        x1 = max(0, min(x1, frame_width))
+        y1 = max(0, min(y1, frame_height))
+        x2 = max(0, min(x2, frame_width))
+        y2 = max(0, min(y2, frame_height))
+        return x1, y1, x2, y2
+
     def frame_no_to_duration(self, frame_no: float | int, fps: float | int) -> str:
         """
         Covert frame number to milliseconds then to time code duration.
@@ -442,12 +455,12 @@ class SubtitleExtractor:
         self.frame_output.mkdir(parents=True)
         self.text_output.mkdir(parents=True)
 
-        fps, frame_total, frame_width, frame_height = self.video_details(video_path)
-        sub_area = sub_area or self.default_sub_area(frame_width, frame_height)
+        fps, frame_total, frame_w, frame_h = self.video_details(video_path)
+        sub_area = self.clamp_sub_area(sub_area, frame_w, frame_h) or self.default_sub_area(frame_w, frame_h)
 
         logger.info(f"File Path: {self.video_path}\n"
                     f"Frame Total: {frame_total:,}, Frame Rate: {fps}\n"
-                    f"Resolution: {frame_width} X {frame_height}\n"
+                    f"Resolution: {frame_w} X {frame_h}\n"
                     f"Subtitle Area: {sub_area}\n"
                     f"Start Frame No: {start_frame}, Stop Frame No: {stop_frame}")
         start = cv.getTickCount()
