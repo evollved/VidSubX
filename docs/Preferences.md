@@ -74,16 +74,16 @@ is not horizontal.
 
 <img src="images/ocr%20perf.png" width="400">
 
-**OCR CPU Processes**: The number of CPU cores to be used for extraction of text from the video. Too little or
+**CPU OCR Processes**: The number of CPU cores to be used for extraction of text from the video. Too little or
 too many will increase extraction time.
 
-**OCR GPU Processes**: The number of GPU processes to be used for extraction of text from the video. Used only
+**CPU Onnx Intra Threads**: The number of threads used by Onnx to parallelize the execution within nodes for the CPU.
+
+**GPU OCR Processes**: The number of GPU processes to be used for extraction of text from the video. Used only
 if GPU is available. Using too many will cause a performance decrease due to oversubscription.
 
-**Onnx Intra Threads**: The number of threads used by Onnx to parallelize the execution within nodes for the CPU.
-
-**_Note:_** Onnx Intra Threads & OCR Processes might require some testing with different values to determine the
-optimal values that provide high utilization of the CPU.
+**_Note:_** CPU & GPU OCR Processes & CPU Onnx Intra Threads might require some testing with different values to
+determine the optimal values that provide high utilization of the CPU or GPU.
 
 **Use GPU if available**: The GPU will be used to speed up the text extraction if available.
 
