@@ -85,19 +85,19 @@ class Config:
         self.model_dir = Path.cwd() / "models"
         self.ocr_opts = {"model_save_dir": str(self.model_dir)}
 
-        self.path = Path(__file__).parent.parent / "config.ini"
+        self.config_file = Path(__file__).parent.parent / "config.ini"
         self.config = ConfigParser()
-        if not self.path.exists():
+        if not self.config_file.exists():
             self.create_default_config_file()
 
-        self.config.read(self.path)
+        self.config.read(self.config_file)
         self.load_config()
 
     def create_default_config_file(self) -> None:
         for section, data in self.config_schema.items():
             self.config[section] = {k: str(default) for k, (_, default) in data.items()}
 
-        with open(self.path, "w") as f:
+        with open(self.config_file, "w") as f:
             self.config.write(f)
 
     @staticmethod
@@ -120,7 +120,7 @@ class Config:
                     self.config[section][key] = str(val)
                     break
 
-        with open(self.path, "w") as f:
+        with open(self.config_file, "w") as f:
             self.config.write(f)
 
 
