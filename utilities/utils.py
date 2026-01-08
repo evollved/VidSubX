@@ -67,7 +67,6 @@ class Config:
         },
         "OCR Engine": {
             "paddleocr_version": (str, "PP-OCRv5"),
-            "use_gpu": (bool, True),
             "use_mobile_model": (bool, True),
             "use_text_ori": (bool, False),
         },
@@ -75,6 +74,7 @@ class Config:
             "cpu_ocr_processes": (int, physical_cores // 2),
             "cpu_onnx_intra_threads": (int, max(4, int(physical_cores / 2.5))),
             "gpu_ocr_processes": (int, max(2, physical_cores // 3)),
+            "use_gpu": (bool, True),
             "auto_optimize_perf": (bool, True),
         },
     }

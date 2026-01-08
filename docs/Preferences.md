@@ -63,8 +63,6 @@ work properly if the OCR detects a lot of space on the same line of text.
 
 **PaddleOCR Version**: The Paddle ocr version that will be used for the text detection and recognition.
 
-**Use GPU if available**: The GPU will be used to speed up the text extraction if available.
-
 **Use Mobile Model**: Determines whether the server or mobile version of the model is used. The server model is very
 slow but has higher accuracy while the mobile model is fast but has a lower accuracy.
 
@@ -86,6 +84,8 @@ if GPU is available. Using too many will cause a performance decrease due to ove
 
 **_Note:_** Onnx Intra Threads & OCR Processes might require some testing with different values to determine the
 optimal values that provide high utilization of the CPU.
+
+**Use GPU if available**: The GPU will be used to speed up the text extraction if available.
 
 **Auto Optimize Performance**: The OCR processes and onnx threads will be auto adjusted to allow optimal CPU usage.
 

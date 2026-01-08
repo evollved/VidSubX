@@ -1180,11 +1180,11 @@ class PreferencesUI(tk.Toplevel):
             width=self.combobox_size
         ).grid(column=1, row=0)
 
-        self.use_gpu = self.make_pref_var(utils.CONFIG.use_gpu)
+        self.use_text_ori = self.make_pref_var(utils.CONFIG.use_text_ori)
         ttk.Checkbutton(
             models_frame,
-            text='Use GPU If Available',
-            variable=self.use_gpu
+            text='Use Text Line Orientation Model',
+            variable=self.use_text_ori
         ).grid(column=0, row=1)
 
         self.use_mobile_model = self.make_pref_var(utils.CONFIG.use_mobile_model)
@@ -1193,13 +1193,6 @@ class PreferencesUI(tk.Toplevel):
             text='Use Mobile Model',
             variable=self.use_mobile_model
         ).grid(column=1, row=1)
-
-        self.use_text_ori = self.make_pref_var(utils.CONFIG.use_text_ori)
-        ttk.Checkbutton(
-            models_frame,
-            text='Use Text Line Orientation Model',
-            variable=self.use_text_ori
-        ).grid(column=0, row=2, pady=self.wgt_y_padding)
 
     def _ocr_performance_tab(self, notebook_tab) -> None:
         model_performance_frame = ttk.Frame(self.notebook_tab)
@@ -1241,13 +1234,20 @@ class PreferencesUI(tk.Toplevel):
         )
         self.gpu_ocr_processes_sb.grid(column=1, row=2)
 
+        self.use_gpu = self.make_pref_var(utils.CONFIG.use_gpu)
+        ttk.Checkbutton(
+            model_performance_frame,
+            text='Use GPU If Available',
+            variable=self.use_gpu
+        ).grid(column=0, row=3)
+
         self.auto_optimize_perf = self.make_pref_var(utils.CONFIG.auto_optimize_perf)
         self.auto_optimize_perf.trace_add("write", self._set_ocr_perf_state)
         ttk.Checkbutton(
             model_performance_frame,
             text='Auto Optimize Performance',
             variable=self.auto_optimize_perf
-        ).grid(column=0, row=3)
+        ).grid(column=1, row=3)
 
     def _set_ocr_perf_state(self, *args) -> None:
         """
