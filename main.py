@@ -456,7 +456,8 @@ class SubtitleExtractor:
         self.text_output.mkdir(parents=True)
 
         fps, frame_total, frame_w, frame_h = self.video_details(video_path)
-        sub_area = self.clamp_sub_area(sub_area, frame_w, frame_h) or self.default_sub_area(frame_w, frame_h)
+        sub_area = sub_area or self.default_sub_area(frame_w, frame_h)
+        sub_area = self.clamp_sub_area(sub_area, frame_w, frame_h)
 
         logger.info(f"File Path: {self.video_path}\n"
                     f"Frame Total: {frame_total:,}, Frame Rate: {fps}\n"
