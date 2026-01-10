@@ -36,7 +36,7 @@ class TestSubtitleDetector(TestCase):
 
     def test__pad_sub_area(self):
         print("\nRunning test for _pad_sub_area method...")
-        self.assertEqual(self.sd._pad_sub_area((698, 158), (1218, 224)), ((288, 143), (1632, 239)))
+        self.assertEqual(self.sd._pad_sub_area((698, 158), (1218, 224)), ((192, 133), (1728, 249)))
 
     def test__reposition_sub_area(self):
         print("\nRunning test for _reposition_sub_area method...")
@@ -52,13 +52,13 @@ class TestSubtitleDetector(TestCase):
 
     def test_get_sub_area_search_area(self):
         print("\nRunning test for get_sub_area method with search area...")
-        sub_area = (288, 871, 1632, 1055)
+        sub_area = (192, 861, 1728, 1065)
         result = SubtitleDetector(ch_vid, True).get_sub_area()
         self.assertEqual(sub_area, result)
 
     def test_get_sub_area_full_area(self):
         print("\nRunning test for get_sub_area method without search area...")
-        sub_area = (288, 942, 1632, 1054)
+        sub_area = (192, 932, 1728, 1064)
         result = SubtitleDetector(ch_vid, False).get_sub_area()
         self.assertEqual(sub_area, result)
 
