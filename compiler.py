@@ -5,7 +5,6 @@ import subprocess
 from datetime import timedelta
 from pathlib import Path
 from time import perf_counter
-from zipfile import ZipFile, ZIP_LZMA
 
 
 def run_command(command: list, use_shell: bool = False) -> None:
@@ -74,25 +73,19 @@ def remove_non_onnx_models() -> None:
             file.unlink()
 
 
-def compile_program(download_models: bool) -> None:
+def compile_program() -> None:
     cmd = [
         "nuitka",
         "--standalone",
         "--enable-plugin=tk-inter",
         "--windows-console-mode=disable",
+        "--include-data-dir=models=models",
         "--include-package-data=custom_ocr",
         "--include-data-files=docs/images/vsx.ico=docs/images/vsx.ico",
         "--windows-icon-from-ico=docs/images/vsx.ico",
-        "--remove-output"
+        "--remove-output",
+        "gui.py"
     ]
-    if download_models:
-        cmd.append("--include-data-dir=models=models")
-    else:
-        cmd.extend([
-            "--include-package=paddle2onnx",
-            rf"--include-data-files={site.getsitepackages()[0]}\Scripts\paddle2onnx.exe=paddle2onnx.exe",
-        ])
-    cmd.append("gui.py")
     print(f"\nCompiling program with Nuitka... \nCommand: {' '.join(cmd)}")
     run_command(cmd, True)
 
@@ -111,16 +104,10 @@ def get_gpu_files() -> None:
         shutil.copytree(gpu_files_dir / f"{dir_name}/bin", f"gui.dist/nvidia/{dir_name}/bin")
 
 
-def zip_files(gpu_enabled: bool, download_models: bool) -> None:
+def zip_files(gpu_enabled: bool) -> None:
     print("\nZipping distribution files...")
     name = f"VSX-{platform.system()}-{'GPU' if gpu_enabled else 'CPU'}-v"
-    directory = Path("gui.dist")
-    if download_models:  # The distribution files will be compressed to reduce the size when the model is included
-        with ZipFile(f"{name}.zip", "w", ZIP_LZMA) as archive:  # 7z program will be needed for extraction
-            for file_path in directory.rglob("*"):
-                archive.write(file_path, arcname=file_path.relative_to(directory))
-    else:
-        shutil.make_archive(name, "zip", directory)
+    shutil.make_archive(name, "zip", "gui.dist")
 
 
 def delete_dist_dir() -> None:
@@ -128,7 +115,7 @@ def delete_dist_dir() -> None:
     shutil.rmtree("gui.dist")
 
 
-def main(gpu_enabled: bool, download_models: bool) -> None:
+def main(gpu_enabled: bool) -> None:
     start_time = perf_counter()
 
     if gpu_enabled:
@@ -139,20 +126,18 @@ def main(gpu_enabled: bool, download_models: bool) -> None:
         install_requirements("cpu")
     install_package("Nuitka==2.8.1")
 
-    if download_models:
-        download_all_models()
-        remove_non_onnx_models()
-
-    compile_program(download_models)
+    download_all_models()
+    remove_non_onnx_models()
+    compile_program()
     rename_exe()
     if gpu_enabled:
         get_gpu_files()
-    zip_files(gpu_enabled, download_models)
+    zip_files(gpu_enabled)
     delete_dist_dir()
 
     print(f"\nCompilation Duration: {timedelta(seconds=round(perf_counter() - start_time))}")
 
 
 if __name__ == '__main__':
-    main(False, False)
-    main(True, False)
+    main(False)
+    main(True)
