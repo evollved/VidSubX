@@ -48,8 +48,6 @@ All the options that are related to text extraction are grouped here.
 
 **Text Extraction Batch Size**: The number of frames to be extracted by each CPU or GPU core/process.
 
-**OCR Recognition Language**: The language of the subtitle in the video to be extracted.
-
 **Text Drop Score**: The minimum acceptable confidence score for every extracted text. A low score will result in more
 inaccurate text in the generated subtitle. A very high score will result in a more accurate text in the generated
 subtitle but lots of skipped text.
@@ -61,14 +59,14 @@ work properly if the OCR detects a lot of space on the same line of text.
 
 <img src="images/ocr%20engine.png" width="400">
 
-**PaddleOCR Version**: The Paddle ocr version that will be used for the text detection and recognition.
-
-**Use Mobile Model**: Determines whether the server or mobile version of the model is used. The server model is very
-slow but has higher accuracy while the mobile model is fast but has a lower accuracy.
+**OCR Recognition Language**: The language of the subtitle in the video to be extracted.
 
 **Use Text Line Orientation Model**: Enabling this option allows the use of a model to determine the orientation of a
 text and rotate it if needed before passing it to the recognition model. This should be used if any text in the video
 is not horizontal.
+
+**Use Mobile Model**: Determines whether the server or mobile version of the model is used. The server model is very
+slow but has higher accuracy while the mobile model is fast but has a lower accuracy.
 
 ### OCR Performance
 

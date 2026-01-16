@@ -42,7 +42,6 @@ class Config:
         },
         "Text Extraction": {
             "text_extraction_batch_size": (int, 100),
-            "ocr_rec_language": (str, "ch"),
             "text_drop_score": (float, 0.6),
             "line_break": (bool, True),
         },
@@ -66,7 +65,7 @@ class Config:
             "win_notify_loop_sound": (bool, True),
         },
         "OCR Engine": {
-            "paddleocr_version": (str, "PP-OCRv5"),
+            "ocr_rec_language": (str, "ch"),
             "use_mobile_model": (bool, True),
             "use_text_ori": (bool, False),
         },

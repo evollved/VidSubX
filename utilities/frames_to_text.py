@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 def setup_ocr() -> None:
     utils.CONFIG.ocr_opts["lang"] = utils.CONFIG.ocr_rec_language
-    utils.CONFIG.ocr_opts["ocr_version"] = utils.CONFIG.paddleocr_version
     utils.CONFIG.ocr_opts["use_mobile_model"] = utils.CONFIG.use_mobile_model
     utils.CONFIG.ocr_opts["use_textline_orientation"] = utils.CONFIG.use_text_ori
 
@@ -48,7 +47,7 @@ def extract_bboxes(files: Path) -> list:
     Returns the bounding boxes of detected texted in images.
     :param files: Directory with images for detection.
     """
-    model_name = f"{utils.CONFIG.paddleocr_version}_{'mobile' if utils.CONFIG.use_mobile_model else 'server'}_det"
+    model_name = f"PP-OCRv5_{'mobile' if utils.CONFIG.use_mobile_model else 'server'}_det"
     det_config = {"model_save_dir": utils.CONFIG.ocr_opts["model_save_dir"], "model_name": model_name,
                   "box_thresh": utils.CONFIG.bbox_drop_score, "use_gpu": utils.CONFIG.ocr_opts["use_gpu"]}
     ocr_engine = TextDetection(**det_config)

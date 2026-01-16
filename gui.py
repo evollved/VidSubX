@@ -1128,24 +1128,7 @@ class PreferencesUI(tk.Toplevel):
             width=self.entry_size
         ).grid(column=1, row=0)
 
-        ttk.Label(text_extraction_frame, text="OCR Recognition Language:").grid(column=0, row=2)
-        self.ocr_rec_language = self.make_pref_var(utils.CONFIG.ocr_rec_language)
-        ttk.Combobox(
-            text_extraction_frame,
-            textvariable=self.ocr_rec_language,
-            values=['abq', 'ady', 'af', 'ang', 'ar', 'ava', 'az', 'ba', 'bal', 'be', 'bg', 'bgc', 'bh', 'bho', 'bs',
-                    'bua', 'ca', 'ch', 'che', 'chinese_cht', 'cs', 'cv', 'cy', 'da', 'dar', 'de', 'en', 'es', 'et',
-                    'eu', 'fa', 'fi', 'fr', 'french', 'ga', 'german', 'gl', 'gom', 'hi', 'hr', 'hu', 'id', 'inh', 'is',
-                    'it', 'japan', 'ka', 'kaa', 'kbd', 'kk', 'korean', 'ku', 'kv', 'ky', 'la', 'lb', 'lbe', 'lez', 'lt',
-                    'lv', 'mah', 'mai', 'mhr', 'mi', 'mk', 'mn', 'mo', 'mr', 'ms', 'mt', 'ne', 'new', 'nl', 'no', 'oc',
-                    'os', 'pi', 'pl', 'ps', 'pt', 'qu', 'rm', 'ro', 'rs_cyrillic', 'rs_latin', 'ru', 'sa', 'sah', 'sck',
-                    'sd', 'sk', 'sl', 'sq', 'sv', 'sw', 'ta', 'tab', 'te', 'tg', 'tl', 'tr', 'tt', 'tyv', 'udm', 'ug',
-                    'uk', 'ur', 'uz', 'vi', 'xal'],
-            state="readonly",
-            width=self.combobox_size
-        ).grid(column=1, row=2)
-
-        ttk.Label(text_extraction_frame, text="Text Drop Score:").grid(column=0, row=3, pady=self.wgt_y_padding)
+        ttk.Label(text_extraction_frame, text="Text Drop Score:").grid(column=0, row=2)
         self.text_drop_score = self.make_pref_var(utils.CONFIG.text_drop_score)
         ttk.Spinbox(
             text_extraction_frame,
@@ -1154,14 +1137,14 @@ class PreferencesUI(tk.Toplevel):
             textvariable=self.text_drop_score,
             state="readonly",
             width=self.spinbox_size
-        ).grid(column=1, row=3)
+        ).grid(column=1, row=2)
 
         self.line_break = self.make_pref_var(utils.CONFIG.line_break)
         ttk.Checkbutton(
             text_extraction_frame,
             text='Use Line Break',
             variable=self.line_break
-        ).grid(column=0, row=4)
+        ).grid(column=0, row=3, pady=self.wgt_y_padding)
 
     def _ocr_engine_tab(self, notebook_tab) -> None:
         models_frame = ttk.Frame(self.notebook_tab)
@@ -1170,12 +1153,19 @@ class PreferencesUI(tk.Toplevel):
         models_frame.grid_columnconfigure(1, weight=1)
         notebook_tab.add(models_frame, text="OCR Engine")
 
-        ttk.Label(models_frame, text="PaddleOCR Version:").grid(column=0, row=0, pady=self.wgt_y_padding)
-        self.paddleocr_version = self.make_pref_var(utils.CONFIG.paddleocr_version)
+        ttk.Label(models_frame, text="OCR Recognition Language:").grid(column=0, row=0, pady=self.wgt_y_padding)
+        self.ocr_rec_language = self.make_pref_var(utils.CONFIG.ocr_rec_language)
         ttk.Combobox(
             models_frame,
-            textvariable=self.paddleocr_version,
-            values=["PP-OCRv3", "PP-OCRv4", "PP-OCRv5"],
+            textvariable=self.ocr_rec_language,
+            values=['ab', 'ady', 'af', 'ang', 'ar', 'av', 'az', 'ba', 'bal', 'be', 'bg', 'bgc', 'bh', 'bho', 'bs',
+                    'bua', 'ca', 'ce', 'ch', 'chinese_cht', 'cs', 'cv', 'cy', 'da', 'dar', 'de', 'el', 'en', 'es', 'et',
+                    'eu', 'fa', 'fi', 'fr', 'ga', 'gl', 'gom', 'hi', 'hr', 'hu', 'id', 'inh', 'is', 'it', 'japan',
+                    'kaa', 'kbd', 'kk', 'korean', 'ku', 'ku', 'kv', 'ky', 'la', 'lb', 'lez', 'lki', 'lt', 'lv', 'mah',
+                    'mai', 'mhr', 'mi', 'mk', 'mn', 'mo', 'mr', 'ms', 'mt', 'ne', 'new', 'nl', 'no', 'oc', 'os', 'pi',
+                    'pl', 'ps', 'pt', 'qu', 'rm', 'ro', 'rs_latin', 'ru', 'sa', 'sah', 'sck', 'sd', 'sk', 'sl', 'sq',
+                    'sr', 'sv', 'sw', 'ta', 'tab', 'te', 'tg', 'th', 'tl', 'tr', 'tt', 'tyv', 'udm', 'ug', 'uk', 'ur',
+                    'uz', 'vi', 'xal'],
             state="readonly",
             width=self.combobox_size
         ).grid(column=1, row=0)

@@ -35,17 +35,11 @@ def download_all_models() -> None:
     from custom_ocr import CustomPaddleOCR
 
     txt_line_ori_models = ["PP-LCNet_x0_25_textline_ori", "PP-LCNet_x1_0_textline_ori"]
-    det_models = ['PP-OCRv3_mobile_det', 'PP-OCRv3_server_det', 'PP-OCRv4_mobile_det', 'PP-OCRv4_server_det',
-                  'PP-OCRv5_mobile_det', 'PP-OCRv5_server_det']
-    rec_models = ['PP-OCRv3_mobile_rec', 'PP-OCRv4_mobile_rec', 'PP-OCRv4_server_rec', 'PP-OCRv5_mobile_rec',
-                  'PP-OCRv5_server_rec', 'arabic_PP-OCRv3_mobile_rec', 'arabic_PP-OCRv5_mobile_rec',
-                  'chinese_cht_PP-OCRv3_mobile_rec', 'cyrillic_PP-OCRv3_mobile_rec', 'cyrillic_PP-OCRv5_mobile_rec',
-                  'devanagari_PP-OCRv3_mobile_rec', 'devanagari_PP-OCRv5_mobile_rec', 'en_PP-OCRv3_mobile_rec',
-                  'en_PP-OCRv4_mobile_rec', 'en_PP-OCRv5_mobile_rec', 'eslav_PP-OCRv5_mobile_rec',
-                  'japan_PP-OCRv3_mobile_rec', 'ka_PP-OCRv3_mobile_rec', 'korean_PP-OCRv3_mobile_rec',
-                  'korean_PP-OCRv5_mobile_rec', 'latin_PP-OCRv3_mobile_rec', 'latin_PP-OCRv5_mobile_rec',
-                  'ta_PP-OCRv3_mobile_rec', 'ta_PP-OCRv5_mobile_rec', 'te_PP-OCRv3_mobile_rec',
-                  'te_PP-OCRv5_mobile_rec']
+    det_models = ['PP-OCRv5_mobile_det', 'PP-OCRv5_server_det']
+    rec_models = ['PP-OCRv5_mobile_rec', 'PP-OCRv5_server_rec', 'arabic_PP-OCRv5_mobile_rec',
+                  'cyrillic_PP-OCRv5_mobile_rec', 'devanagari_PP-OCRv5_mobile_rec', 'en_PP-OCRv5_mobile_rec',
+                  'eslav_PP-OCRv5_mobile_rec', 'korean_PP-OCRv5_mobile_rec', 'latin_PP-OCRv5_mobile_rec',
+                  'ta_PP-OCRv5_mobile_rec', 'te_PP-OCRv5_mobile_rec']
     utils.CONFIG.ocr_opts["use_gpu"] = False
     for model in txt_line_ori_models:
         print(f"\nChecking for {model} model...")
