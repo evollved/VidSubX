@@ -1,4 +1,7 @@
 import logging
+import os
+import platform
+import sys
 from configparser import ConfigParser
 from functools import cache
 from pathlib import Path
@@ -33,7 +36,35 @@ def get_physical_cores() -> int:
     return psutil.cpu_count(logical=False)
 
 
+def get_config_dir() -> Path:
+    if getattr(sys, "frozen", False):  # config dir will be in working dir if not compiled
+        operating_system = platform.system()
+        if operating_system == "Windows":
+            config_dir = Path(os.getenv("APPDATA"), Config.program_name)
+        else:
+            config_dir = Path(__file__).parent.parent
+    else:
+        config_dir = Path(__file__).parent.parent
+    config_dir.mkdir(exist_ok=True)
+    return config_dir
+
+
+def get_log_dir() -> Path:
+    if getattr(sys, "frozen", False):  # log dir will be in working dir if not compiled
+        operating_system = platform.system()
+        if operating_system == "Windows":
+            log_dir = Path(os.getenv("LOCALAPPDATA"), Config.program_name)
+        else:
+            log_dir = Path(__file__).parent.parent
+
+    else:
+        log_dir = Path(__file__).parent.parent
+    log_dir.mkdir(exist_ok=True)
+    return log_dir
+
+
 class Config:
+    program_name = "VidSubX"
     physical_cores = get_physical_cores()
     config_schema = {
         "Frame Extraction": {
@@ -84,7 +115,7 @@ class Config:
         self.model_dir = Path.cwd() / "models"
         self.ocr_opts = {"model_save_dir": str(self.model_dir)}
 
-        self.config_file = Path(__file__).parent.parent / "config.ini"
+        self.config_file = get_config_dir() / "config.ini"
         self.config = ConfigParser()
         if not self.config_file.exists():
             self.create_default_config_file()

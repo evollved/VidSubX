@@ -4,6 +4,8 @@ import sys
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
+from .utils import get_log_dir
+
 
 class LogLevelFilter(logging.Filter):
     def __init__(self, level: int) -> None:
@@ -48,10 +50,14 @@ def get_console_handler() -> logging.handlers:
     return console_handler
 
 
-def get_file_handler(log_dir: Path, log_format: logging.Formatter) -> logging.handlers:
+def get_file_handler(log_format: logging.Formatter) -> logging.handlers:
     """
     Determine how the log messages are handled for log files.
     """
+    # Create folder for file logs.
+    log_dir = get_log_dir() / "logs"
+    log_dir.mkdir(exist_ok=True)
+
     log_file = log_dir / "runtime.log"
     file_handler = TimedRotatingFileHandler(log_file, when='midnight', interval=1, backupCount=7, encoding='utf-8')
     file_handler.namer = log_namer
@@ -93,10 +99,6 @@ def setup_logging() -> None:
     reset_handlers()
     set_no_console_redirect()
 
-    # Create folder for file logs.
-    log_dir = Path(__file__).parent.parent / "logs"
-    log_dir.mkdir(exist_ok=True)
-
     # Create a custom logger.
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
@@ -107,7 +109,7 @@ def setup_logging() -> None:
     # Add handlers to the logger.
     logger.addHandler(get_console_handler())
     logger.addHandler(get_console_error_handler())
-    logger.addHandler(get_file_handler(log_dir, log_format))
+    logger.addHandler(get_file_handler(log_format))
 
 
 def log_namer(default_name: str) -> str:

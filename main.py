@@ -1,5 +1,6 @@
 import logging
 import shutil
+import tempfile
 from datetime import timedelta
 from difflib import SequenceMatcher
 from itertools import pairwise
@@ -151,7 +152,7 @@ class SubtitleExtractor:
         """
         self.video_path, self.subtitle_texts = None, {}
         self.divider = "--"  # Characters for separating time durations(ms) in key name.
-        self.vd_output_dir = Path(__file__).parent / "output"  # Cache directory.
+        self.vd_output_dir = Path(tempfile.gettempdir()) / utils.CONFIG.program_name  # Cache directory.
         # Extracted video frame storage directory. Extracted text file storage directory.
         self.frame_output, self.text_output = self.vd_output_dir / "frames", self.vd_output_dir / "extracted texts"
 
