@@ -1,4 +1,6 @@
+import platform
 import shutil
+import site
 import subprocess
 from datetime import timedelta
 from pathlib import Path
@@ -65,12 +67,13 @@ def remove_compiler_leftovers() -> None:
     print("\nRemoving compiler leftovers...")
     Path("gui.spec").unlink()
     shutil.rmtree("build")
+    shutil.rmtree("dist")
 
 
 def compile_program(gpu_enabled: bool) -> None:
     cmd = [
         "pyinstaller",
-        "--add-data=installer/vsx.ico.ico:installer",
+        "--add-data=installer/vsx.ico:installer",
         "--add-data=models:models",
         "--collect-data=custom_ocr",
         "--icon=installer/vsx.ico",
@@ -85,8 +88,33 @@ def compile_program(gpu_enabled: bool) -> None:
     run_command(cmd, True)
 
 
-def build_dist(gpu_enabled: bool) -> None:
+def create_installer(version: float, name: str) -> None:
+    inno_exe = Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe")
+    if not inno_exe.exists():
+        print(f"Inno Setup executable not found: {inno_exe} Exiting..."), exit(1)
+    cmd = [
+        str(inno_exe),
+        f"/DMyAppVersion={version}",
+        f"/DOutputBaseFilename={name}",
+        "installer/inno script.iss",
+    ]
+    print(f"\nCreating {platform.system()} installer for program... \nCommand: {' '.join(cmd)}")
+    run_command(cmd)
+
+
+def remove_site_pkg_tempdirs() -> None:
+    print("\nChecking for site package temporary directories...")
+    temp_dir = Path(f"{site.getsitepackages()[1]}")
+    for folder in temp_dir.iterdir():
+        if folder.name.startswith("~"):
+            print(f"Deleting temp folder: {folder}")
+            shutil.rmtree(folder)
+
+
+def build_dist(gpu_enabled: bool, version: float = 1.5) -> None:
+    name = f"VSX-{platform.system()}-{'GPU' if gpu_enabled else 'CPU'}-v{version}"
     start_time = perf_counter()
+    remove_site_pkg_tempdirs()
     if gpu_enabled:
         uninstall_requirements("cpu")
         install_requirements("gpu")
@@ -94,15 +122,14 @@ def build_dist(gpu_enabled: bool) -> None:
         uninstall_requirements("gpu")
         install_requirements("cpu")
     install_package("pyinstaller==6.18.0")
-
     download_all_models()
     remove_non_onnx_models()
     compile_program(gpu_enabled)
-
+    create_installer(version, name)
     remove_compiler_leftovers()
-
     print(f"\nCompilation Duration: {timedelta(seconds=round(perf_counter() - start_time))}")
 
 
 if __name__ == '__main__':
+    build_dist(gpu_enabled=False)
     build_dist(gpu_enabled=True)

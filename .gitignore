@@ -1,5 +1,6 @@
 /.idea/
 /logs/
 /config.ini
-/dist/
 /models/
+/build/
+/dist/
