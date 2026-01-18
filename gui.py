@@ -4,6 +4,7 @@ import platform
 import sys
 import tkinter as tk
 from datetime import timedelta
+from multiprocessing import freeze_support
 from os import cpu_count
 from pathlib import Path
 from threading import Thread
@@ -138,7 +139,7 @@ class SubtitleExtractorGUI:
         Use ttk to create frames for gui.
         """
         # Window title and icon.
-        self.window_title = "VidSubX"
+        self.window_title = utils.CONFIG.program_name
         self.icon_file = Path(__file__).parent / "docs/images/vsx.ico"
         self.root.title(self.window_title)
         if platform.system() == "Windows":
@@ -1411,6 +1412,7 @@ class PreferencesUI(tk.Toplevel):
 
 
 if __name__ == '__main__':
+    freeze_support()
     setup_logging()
     logger.debug("\n\nGUI program Started.")
     set_dpi_scaling()

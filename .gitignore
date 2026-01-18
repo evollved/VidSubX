@@ -1,9 +1,5 @@
 /.idea/
 /logs/
-/output/
 /config.ini
-/gui.build/
-/gui.dist/
+/dist/
 /models/
-VSX-Windows-CPU-v.zip
-VSX-Windows-GPU-v.zip

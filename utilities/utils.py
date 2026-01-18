@@ -112,7 +112,7 @@ class Config:
     def __init__(self) -> None:
         # Permanent values
         self.subarea_height_scaler = 0.75
-        self.model_dir = Path.cwd() / "models"
+        self.model_dir = Path(__file__).parent.parent / "models"
         self.ocr_opts = {"model_save_dir": str(self.model_dir)}
 
         self.config_file = get_config_dir() / "config.ini"

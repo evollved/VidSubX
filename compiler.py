@@ -1,6 +1,4 @@
-import platform
 import shutil
-import site
 import subprocess
 from datetime import timedelta
 from pathlib import Path
@@ -12,22 +10,18 @@ def run_command(command: list, use_shell: bool = False) -> None:
 
 
 def install_requirements(device: str) -> None:
-    print("\nInstalling requirements...")
+    print(f"\nInstalling {device} requirements...")
     run_command(['pip', 'install', '-r', f'requirements-{device}.txt'])
+
+
+def uninstall_requirements(device: str) -> None:
+    print(f"\nUninstalling {device} requirements...")
+    run_command(['pip', 'uninstall', '-r', f'requirements-{device}.txt', '-y'])
 
 
 def install_package(name: str) -> None:
     print(f"\n...Installing package {name}...")
     run_command(["pip", "install", name])
-
-
-def uninstall_package(name: str) -> None:
-    temp_dir = Path(f"{site.getsitepackages()[1]}/~addle")
-    if temp_dir.exists():
-        print("\nRemoving undeleted temp directory...")
-        shutil.rmtree(temp_dir, ignore_errors=True)
-    print(f"\n...Uninstalling package {name}...")
-    run_command(["pip", "uninstall", "-y", name])
 
 
 def download_all_models() -> None:
@@ -67,71 +61,48 @@ def remove_non_onnx_models() -> None:
             file.unlink()
 
 
-def compile_program() -> None:
+def remove_compiler_leftovers() -> None:
+    print("\nRemoving compiler leftovers...")
+    Path("gui.spec").unlink()
+    shutil.rmtree("build")
+
+
+def compile_program(gpu_enabled: bool) -> None:
     cmd = [
-        "nuitka",
-        "--standalone",
-        "--enable-plugin=tk-inter",
-        "--windows-console-mode=disable",
-        "--include-data-dir=models=models",
-        "--include-package-data=custom_ocr",
-        "--include-data-files=docs/images/vsx.ico=docs/images/vsx.ico",
-        "--windows-icon-from-ico=docs/images/vsx.ico",
-        "--remove-output",
-        "gui.py"
+        "pyinstaller",
+        "--add-data=docs/images/vsx.ico:docs/images",
+        "--add-data=models:models",
+        "--collect-data=custom_ocr",
+        "--icon=docs/images/vsx.ico",
+        "--noconsole",
+        "--noconfirm",
+        "--clean",
     ]
-    print(f"\nCompiling program with Nuitka... \nCommand: {' '.join(cmd)}")
+    if gpu_enabled:
+        cmd.append("--collect-binaries=nvidia")
+    cmd.append("gui.py")
+    print(f"\nCompiling program with PyInstaller... \nCommand: {' '.join(cmd)}")
     run_command(cmd, True)
 
 
-def rename_exe() -> None:
-    print("\nRenaming exe file...")
-    exe_file = Path("gui.dist/gui.exe")
-    exe_file.rename("gui.dist/VSX.exe")
-
-
-def get_gpu_files() -> None:
-    print("\nCopying GPU files...")
-    gpu_files_dir = Path(site.getsitepackages()[1], "nvidia")
-    required_dirs = ["cudnn", "cufft", "cublas", "cuda_runtime"]
-    for dir_name in required_dirs:
-        shutil.copytree(gpu_files_dir / f"{dir_name}/bin", f"gui.dist/nvidia/{dir_name}/bin")
-
-
-def zip_files(gpu_enabled: bool) -> None:
-    print("\nZipping distribution files...")
-    name = f"VSX-{platform.system()}-{'GPU' if gpu_enabled else 'CPU'}-v"
-    shutil.make_archive(name, "zip", "gui.dist")
-
-
-def delete_dist_dir() -> None:
-    print("\nRemoving distribution directory...")
-    shutil.rmtree("gui.dist")
-
-
-def main(gpu_enabled: bool) -> None:
+def build_dist(gpu_enabled: bool) -> None:
     start_time = perf_counter()
-
     if gpu_enabled:
-        uninstall_package("onnxruntime")
+        uninstall_requirements("cpu")
         install_requirements("gpu")
     else:
-        uninstall_package("onnxruntime-gpu")
+        uninstall_requirements("gpu")
         install_requirements("cpu")
-    install_package("Nuitka==2.8.1")
+    install_package("pyinstaller==6.18.0")
 
     download_all_models()
     remove_non_onnx_models()
-    compile_program()
-    rename_exe()
-    if gpu_enabled:
-        get_gpu_files()
-    zip_files(gpu_enabled)
-    delete_dist_dir()
+    compile_program(gpu_enabled)
+
+    remove_compiler_leftovers()
 
     print(f"\nCompilation Duration: {timedelta(seconds=round(perf_counter() - start_time))}")
 
 
 if __name__ == '__main__':
-    main(False)
-    main(True)
+    build_dist(gpu_enabled=True)
