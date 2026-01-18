@@ -9,8 +9,8 @@ config_file.unlink(missing_ok=True)  # The tests only work on the default config
 
 from main import SubtitleDetector, SubtitleExtractor, setup_ocr
 
-ch_vid = "test files/chinese_vid.mp4"
-ch_vid_srt = Path("test files/chinese_vid.srt")
+ch_vid = "test data/chinese_vid.mp4"
+ch_vid_srt = Path("test data/chinese_vid.srt")
 setup_ocr()
 
 

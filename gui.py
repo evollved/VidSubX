@@ -140,7 +140,7 @@ class SubtitleExtractorGUI:
         """
         # Window title and icon.
         self.window_title = utils.CONFIG.program_name
-        self.icon_file = Path(__file__).parent / "docs/images/vsx.ico"
+        self.icon_file = Path(__file__).parent / "installer/vsx.ico"
         self.root.title(self.window_title)
         if platform.system() == "Windows":
             self.root.iconbitmap(self.icon_file)

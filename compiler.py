@@ -70,10 +70,10 @@ def remove_compiler_leftovers() -> None:
 def compile_program(gpu_enabled: bool) -> None:
     cmd = [
         "pyinstaller",
-        "--add-data=docs/images/vsx.ico:docs/images",
+        "--add-data=installer/vsx.ico.ico:installer",
         "--add-data=models:models",
         "--collect-data=custom_ocr",
-        "--icon=docs/images/vsx.ico",
+        "--icon=installer/vsx.ico",
         "--noconsole",
         "--noconfirm",
         "--clean",
