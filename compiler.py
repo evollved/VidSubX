@@ -65,7 +65,7 @@ def remove_non_onnx_models() -> None:
 
 def remove_compiler_leftovers() -> None:
     print("\nRemoving compiler leftovers...")
-    Path("gui.spec").unlink()
+    Path("VSX.spec").unlink()
     shutil.rmtree("build")
     shutil.rmtree("dist")
 
@@ -74,9 +74,11 @@ def compile_program(gpu_enabled: bool) -> None:
     cmd = [
         "pyinstaller",
         "--add-data=installer/vsx.ico:installer",
+        "--add-data=installer/version.txt:installer",
         "--add-data=models:models",
         "--collect-data=custom_ocr",
         "--icon=installer/vsx.ico",
+        "--name=VSX",
         "--noconsole",
         "--noconfirm",
         "--clean",
@@ -88,7 +90,7 @@ def compile_program(gpu_enabled: bool) -> None:
     run_command(cmd, True)
 
 
-def create_installer(version: float, name: str) -> None:
+def create_installer(version: str, name: str) -> None:
     inno_exe = Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe")
     if not inno_exe.exists():
         print(f"Inno Setup executable not found: {inno_exe} Exiting..."), exit(1)
@@ -111,7 +113,8 @@ def remove_site_pkg_tempdirs() -> None:
             shutil.rmtree(folder)
 
 
-def build_dist(gpu_enabled: bool, version: float = 1.5) -> None:
+def build_dist(gpu_enabled: bool) -> None:
+    version = Path("installer/version.txt").read_text()
     name = f"VSX-{platform.system()}-{'GPU' if gpu_enabled else 'CPU'}-v{version}"
     start_time = perf_counter()
     remove_site_pkg_tempdirs()

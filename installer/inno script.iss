@@ -9,7 +9,7 @@
 #define MyAppName "VidSubX"
 #define MyAppPublisher "Victor N"
 #define MyAppURL "https://github.com/voun7/VidSubX"
-#define MyAppExeName "gui.exe"
+#define MyAppExeName "VSX.exe"
 
 [Setup]
 AppId={{1BF98D9C-B728-4938-82FC-18EA0B08BB0E}
@@ -36,8 +36,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\dist\gui\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\dist\gui\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\VSX\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\VSX\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

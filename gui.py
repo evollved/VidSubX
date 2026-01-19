@@ -133,6 +133,7 @@ class SubtitleExtractorGUI:
         self.video_target_height = 500
         self.thread_running = False
         self._console_redirector()
+        self.update_checker()
 
     def _create_layout(self) -> None:
         """
@@ -888,6 +889,11 @@ class SubtitleExtractorGUI:
             self.menubar.entryconfig(6, state=state)  # Set Start Frame button.
             self.menubar.entryconfig(7, state=state)  # Set Stop Frame button.
             self.video_scale.configure(state=state)
+
+    @staticmethod
+    def update_checker() -> None:
+        if getattr(sys, "frozen", False):
+            Thread(target=utils.check_for_updates(), daemon=True).start()
 
     def clear_notifications(self) -> None:
         """

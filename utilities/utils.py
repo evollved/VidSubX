@@ -7,6 +7,7 @@ from functools import cache
 from pathlib import Path
 
 import psutil
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,32 @@ class Process:
         """
         cls.interrupt_process = True
         logger.debug(f"interrupt_process set to: {cls.interrupt_process}")
+
+
+def check_for_updates() -> None:
+    """
+    Checks GitHub for a new release.
+    """
+
+    def normalize_version(version: str, parts: int = 3) -> tuple:
+        nums = list(map(int, version.lstrip("v").split(".")))
+        return tuple(nums + [0] * (parts - len(nums)))
+
+    try:
+        response = requests.get(f"https://api.github.com/repos/voun7/{Config.program_name}/releases/latest")
+        if response.status_code == 200:
+            data = response.json()
+            latest_version = normalize_version(data["tag_name"])
+            version_file = Path(__file__).parent.parent / "installer/version.txt"
+            current_version = normalize_version(version_file.read_text())
+            if latest_version > current_version:
+                logger.info(f"Version {data["tag_name"]} is now available.\nLink: {data['html_url']}")
+            else:
+                logger.debug("No new updates available.")
+    except Exception as error:
+        logger.info("Failed to check for updates!")
+        logger.exception(error)
+        return
 
 
 @cache
