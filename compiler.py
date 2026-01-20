@@ -90,7 +90,11 @@ def compile_program(gpu_enabled: bool) -> None:
     run_command(cmd, True)
 
 
-def create_installer(version: str, name: str) -> None:
+def create_installer(gpu_enabled: bool) -> None:
+    import utilities.utils as utils
+
+    version = utils.CONFIG.version_file.read_text()
+    name = f"VSX-{platform.system()}-{'GPU' if gpu_enabled else 'CPU'}-v{version}"
     inno_exe = Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe")
     if not inno_exe.exists():
         print(f"Inno Setup executable not found: {inno_exe} Exiting..."), exit(1)
@@ -114,8 +118,6 @@ def remove_site_pkg_tempdirs() -> None:
 
 
 def build_dist(gpu_enabled: bool) -> None:
-    version = Path("installer/version.txt").read_text()
-    name = f"VSX-{platform.system()}-{'GPU' if gpu_enabled else 'CPU'}-v{version}"
     start_time = perf_counter()
     remove_site_pkg_tempdirs()
     if gpu_enabled:
@@ -128,7 +130,7 @@ def build_dist(gpu_enabled: bool) -> None:
     download_all_models()
     remove_non_onnx_models()
     compile_program(gpu_enabled)
-    create_installer(version, name)
+    create_installer(gpu_enabled)
     remove_compiler_leftovers()
     print(f"\nCompilation Duration: {timedelta(seconds=round(perf_counter() - start_time))}")
 

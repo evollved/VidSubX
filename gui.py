@@ -163,7 +163,7 @@ class SubtitleExtractorGUI:
         self._work_frame()
         self._output_frame()
 
-        self.status_label = tk.Label(self.main_frame)
+        self.status_label = ttk.Label(self.main_frame, text=f"v{utils.Config.version_file.read_text()}")
         self.status_label.grid(column=0, row=3, padx=18, sticky="E")
         # Display window after layout is ready
         self.root.update_idletasks()

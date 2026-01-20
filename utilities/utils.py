@@ -46,8 +46,7 @@ def check_for_updates() -> None:
         if response.status_code == 200:
             data = response.json()
             latest_version = normalize_version(data["tag_name"])
-            version_file = Path(__file__).parent.parent / "installer/version.txt"
-            current_version = normalize_version(version_file.read_text())
+            current_version = normalize_version(Config.version_file.read_text())
             if latest_version > current_version:
                 logger.info(f"Version {data["tag_name"]} is now available.\nLink: {data['html_url']}")
             else:
@@ -92,6 +91,7 @@ def get_log_dir() -> Path:
 
 class Config:
     program_name = "VidSubX"
+    version_file = Path(__file__).parent.parent / "installer/version.txt"
     physical_cores = get_physical_cores()
     config_schema = {
         "Frame Extraction": {
