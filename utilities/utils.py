@@ -8,6 +8,7 @@ from pathlib import Path
 
 import psutil
 import requests
+from packaging.version import Version
 
 logger = logging.getLogger(__name__)
 
@@ -36,19 +37,14 @@ def check_for_updates() -> None:
     """
     Checks GitHub for a new release.
     """
-
-    def normalize_version(version: str, parts: int = 3) -> tuple:
-        nums = list(map(int, version.lstrip("v").split(".")))
-        return tuple(nums + [0] * (parts - len(nums)))
-
     try:
         response = requests.get(f"https://api.github.com/repos/voun7/{Config.program_name}/releases/latest")
         if response.status_code == 200:
             data = response.json()
-            latest_version = normalize_version(data["tag_name"])
-            current_version = normalize_version(Config.version_file.read_text())
+            latest_version = Version(data["tag_name"])
+            current_version = Version(Config.version_file.read_text())
             if latest_version > current_version:
-                logger.info(f"Version {data["tag_name"]} is now available.\nLink: {data['html_url']}")
+                logger.info(f"Version {latest_version} is now available.\nLink: {data['html_url']}")
             else:
                 logger.debug("No new updates available.")
     except Exception as error:
@@ -82,7 +78,6 @@ def get_log_dir() -> Path:
             log_dir = Path(os.getenv("LOCALAPPDATA"), Config.program_name)
         else:
             log_dir = Path(__file__).parent.parent
-
     else:
         log_dir = Path(__file__).parent.parent
     log_dir.mkdir(exist_ok=True)
