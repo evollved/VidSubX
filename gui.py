@@ -123,7 +123,7 @@ class CustomMessageBox(tk.Toplevel):
 
 
 class SubtitleExtractorGUI:
-    def __init__(self, root) -> None:
+    def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
         self._create_layout()
@@ -142,15 +142,14 @@ class SubtitleExtractorGUI:
         # Window title and icon.
         self.window_title = utils.CONFIG.program_name
         self.icon_file = Path(__file__).parent / "installer/vsx.ico"
+        self.root.withdraw()  # Hide root window while layout is being drawn
         self.root.title(self.window_title)
         if platform.system() == "Windows":
             self.root.iconbitmap(self.icon_file)
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
-
         # Create window menu bar.
         self._menu_bar()
-
         # Create main frame that will contain other frames.
         self.main_frame = ttk.Frame(self.root, padding=(5, 5, 5, 0))
         # Main frame's position in root window.
@@ -159,7 +158,6 @@ class SubtitleExtractorGUI:
         self.main_frame.grid_rowconfigure(0, weight=1)  # Video Frame
         self.main_frame.grid_rowconfigure(1, weight=1)  # Work Frame
         self.main_frame.grid_rowconfigure(2, weight=1)  # Output Frame
-
         # Frames created in main frame.
         self._video_frame()
         self._work_frame()
@@ -167,6 +165,9 @@ class SubtitleExtractorGUI:
 
         self.status_label = tk.Label(self.main_frame)
         self.status_label.grid(column=0, row=3, padx=18, sticky="E")
+        # Display window after layout is ready
+        self.root.update_idletasks()
+        self.root.deiconify()
 
     def _menu_bar(self) -> None:
         # Remove dashed lines that come default with tkinter menu bar.
@@ -288,7 +289,7 @@ class SubtitleExtractorGUI:
         # Connect text and scrollbar widgets.
         self.text_output_widget.configure(yscrollcommand=output_scroll.set)
 
-    def resize_video(self, *args: tuple[tk.Event | str] | str) -> None:
+    def resize_video(self, args: tk.Event | str) -> None:
         """
         Increase or decrease the video display and canvas size.
         """
@@ -336,7 +337,7 @@ class SubtitleExtractorGUI:
         The windows opening location will always be on top of the main window.
         """
         root_x, root_y = self.root.winfo_rootx(), self.root.winfo_rooty()
-        win_x, win_y = root_x + 100, root_y + 50
+        win_x, win_y = root_x + 100, root_y + 20
         self.preference_window = PreferencesUI(self.icon_file, win_x, win_y)
 
     def _get_rescale_factor(self) -> float:
@@ -919,14 +920,15 @@ class PreferencesUI(tk.Toplevel):
         super().__init__()
         self.icon_file = icon_file
         self.geometry(f"+{win_x}+{win_y}")  # Set window position.
+        self._create_layout()
         self.focus()
         self.grab_set()
-        self._create_layout()
 
     def _create_layout(self) -> None:
         """
         Create layout for preferences window.
         """
+        self.withdraw()
         self.title("Preferences")
         if platform.system() == "Windows":
             self.iconbitmap(self.icon_file)
@@ -968,6 +970,9 @@ class PreferencesUI(tk.Toplevel):
 
         self._set_reset_button()  # Set the reset button when layout is created.
         self._set_ocr_perf_state()
+
+        self.update_idletasks()
+        self.deiconify()
 
     def make_pref_var(self, var):
         """
