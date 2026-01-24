@@ -49,7 +49,7 @@ def check_for_updates() -> None:
                 logger.debug("No new updates available.")
     except Exception as error:
         logger.info("Failed to check for updates!")
-        logger.exception(error)
+        logger.debug(error)
         return
 
 
@@ -59,27 +59,21 @@ def get_physical_cores() -> int:
 
 
 def get_config_dir() -> Path:
+    config_dir = Path(__file__).parent.parent
     if getattr(sys, "frozen", False):  # config dir will be in working dir if not compiled
         operating_system = platform.system()
         if operating_system == "Windows":
             config_dir = Path(os.getenv("APPDATA"), Config.program_name)
-        else:
-            config_dir = Path(__file__).parent.parent
-    else:
-        config_dir = Path(__file__).parent.parent
     config_dir.mkdir(exist_ok=True)
     return config_dir
 
 
 def get_log_dir() -> Path:
+    log_dir = Path(__file__).parent.parent
     if getattr(sys, "frozen", False):  # log dir will be in working dir if not compiled
         operating_system = platform.system()
         if operating_system == "Windows":
             log_dir = Path(os.getenv("LOCALAPPDATA"), Config.program_name)
-        else:
-            log_dir = Path(__file__).parent.parent
-    else:
-        log_dir = Path(__file__).parent.parent
     log_dir.mkdir(exist_ok=True)
     return log_dir
 
