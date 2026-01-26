@@ -123,6 +123,9 @@ class Config:
             "use_gpu": (bool, True),
             "auto_optimize_perf": (bool, True),
         },
+        "Theme":{
+            "use_dark_mode": (bool, False),
+        }
     }
 
     def __init__(self) -> None:

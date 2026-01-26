@@ -48,6 +48,23 @@ def set_dpi_scaling() -> None:
             logger.exception(f"An error occurred while setting the dpi: {dpi_error}")
 
 
+def set_title_bar_colour(window_id: int, use_dark: bool) -> None:
+    """
+    For windows use the Windows DWM API to set dark mode (attribute 20).
+    This works for Windows 10 (build 17763+) and Windows 11
+    """
+    if platform.system() == "Windows":
+        try:
+            set_window_attribute = ctypes.windll.dwmapi.DwmSetWindowAttribute
+            get_parent = ctypes.windll.user32.GetParent
+            hwnd = get_parent(window_id)
+            rendering_policy = ctypes.c_int(1 if use_dark else 0)
+            # 20 is the ID for the Immersive Dark Mode attribute
+            set_window_attribute(hwnd, 20, ctypes.byref(rendering_policy), ctypes.sizeof(rendering_policy))
+        except Exception as error:
+            logger.exception(f"Dark mode title bar not supported: {error}")
+
+
 class CustomMessageBox(tk.Toplevel):
     """
     CustomMessageBox class represents a custom messagebox that appends messages on a single window.
@@ -148,6 +165,8 @@ class SubtitleExtractorGUI:
             self.root.iconbitmap(self.icon_file)
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
+        self.style = ttk.Style()
+        self.default_theme = self.style.theme_use()
         # Create window menu bar.
         self._menu_bar()
         # Create main frame that will contain other frames.
@@ -166,6 +185,7 @@ class SubtitleExtractorGUI:
         self.status_label = ttk.Label(self.main_frame, text=f"v{utils.Config.version_file.read_text()}")
         self.status_label.grid(column=0, row=3, padx=18, sticky="E")
         # Display window after layout is ready
+        self._toggle_theme()
         self.root.update_idletasks()
         self.root.deiconify()
 
@@ -195,6 +215,8 @@ class SubtitleExtractorGUI:
         self.file_menu.add_command(label="Close", command=self._on_closing)
 
         # Add menu items to view menu.
+        self.use_dark_mode = tk.BooleanVar(value=utils.CONFIG.use_dark_mode)
+        self.view_menu.add_checkbutton(label="Dark Mode", command=self._toggle_theme, variable=self.use_dark_mode)
         self.view_menu.add_command(label="Video Zoom In   (Ctrl+Plus)", command=lambda: self.resize_video("equal"))
         self.view_menu.add_command(label="Video Zoom Out  (Ctrl+Minus)", command=lambda: self.resize_video("minus"))
         self.root.bind("<Control-equal>", self.resize_video)  # equal instead of plus. It prevents need for shift key.
@@ -288,6 +310,34 @@ class SubtitleExtractorGUI:
 
         # Connect text and scrollbar widgets.
         self.text_output_widget.configure(yscrollcommand=output_scroll.set)
+
+    def _toggle_theme(self) -> None:
+        """
+        Set the theme of the gui.
+        """
+        if self.use_dark_mode.get():
+            logger.debug("Dark mode turned on")
+            set_title_bar_colour(self.root.winfo_id(), True)
+            self.file_menu.configure(bg="#2d2d2d", fg="white", activebackground="#4a4a4a")
+            self.view_menu.configure(bg="#2d2d2d", fg="white", activebackground="#4a4a4a")
+            self.canvas.configure(bg="#1e1e1e")
+            self.text_output_widget.configure(bg="#1e1e1e", fg="white")
+
+            self.style.theme_use("clam")
+            self.style.configure("TFrame", background="#1e1e1e")
+            self.style.configure("TLabel", background="#1e1e1e", foreground="white")
+            self.style.configure("Horizontal.TScale", troughcolor="#2b2b2b")
+            self.style.configure("TEntry", fieldbackground="#1e1e1e", foreground="white", insertcolor="white")
+            self.style.configure("TSpinbox", fieldbackground="#1e1e1e", foreground="white", insertcolor="white")
+        else:
+            logger.debug("Dark mode turned off")
+            set_title_bar_colour(self.root.winfo_id(), False)
+            self.style.theme_use(self.default_theme)
+            self.file_menu.configure(bg="SystemMenu", fg="black", activebackground="SystemHighlight")
+            self.view_menu.configure(bg="SystemMenu", fg="black", activebackground="SystemHighlight")
+            self.canvas.configure(bg="SystemButtonFace")
+            self.text_output_widget.configure(bg="white", fg="black")
+        utils.CONFIG.set_config(use_dark_mode=self.use_dark_mode.get())
 
     def resize_video(self, args: tk.Event | str) -> None:
         """
@@ -920,6 +970,7 @@ class PreferencesUI(tk.Toplevel):
         super().__init__()
         self.icon_file = icon_file
         self.geometry(f"+{win_x}+{win_y}")  # Set window position.
+        self.sections_to_skip = {"Theme"}  # Sections from Config
         self._create_layout()
         self.focus()
         self.grab_set()
@@ -971,6 +1022,7 @@ class PreferencesUI(tk.Toplevel):
         self._set_reset_button()  # Set the reset button when layout is created.
         self._set_ocr_perf_state()
 
+        set_title_bar_colour(self.winfo_id(), utils.CONFIG.use_dark_mode)
         self.update_idletasks()
         self.deiconify()
 
@@ -1363,10 +1415,19 @@ class PreferencesUI(tk.Toplevel):
         :param args: Info of the variable that called the method.
         """
         logger.debug(f"Reset button set by -> {args}")
-        default_values = [default for section in utils.CONFIG.config_schema.values() for _, default in section.values()]
+        default_values = [
+            default
+            for section_name, section in utils.CONFIG.config_schema.items()
+            if section_name not in self.sections_to_skip
+            for _, default in section.values()
+        ]
         try:
-            values = [getattr(self, key).get() for section in utils.CONFIG.config_schema.values() for key in
-                      section.keys()]
+            values = [
+                getattr(self, key).get()
+                for section_name, section in utils.CONFIG.config_schema.items()
+                if section_name not in self.sections_to_skip
+                for key in section.keys()
+            ]
         except tk.TclError:
             values = None
 
@@ -1405,17 +1466,22 @@ class PreferencesUI(tk.Toplevel):
         """
         Change the values of the text variables to the default values.
         """
-        for section in utils.CONFIG.config_schema.values():
-            for key, (_, default_value) in section.items():
-                getattr(self, key).set(default_value)
+        for section_name, section in utils.CONFIG.config_schema.items():
+            if section_name not in self.sections_to_skip:
+                for key, (_, default_value) in section.items():
+                    getattr(self, key).set(default_value)
 
     def _save_settings(self) -> None:
         """
         Save the values of the text variables to the config file.
         """
         try:
-            settings = {key: getattr(self, key).get() for section in utils.CONFIG.config_schema.values() for key in
-                        section.keys()}
+            settings = {
+                key: getattr(self, key).get()
+                for section_name, section in utils.CONFIG.config_schema.items()
+                if section_name not in self.sections_to_skip
+                for key in section.keys()
+            }
             utils.CONFIG.set_config(**settings)
         except tk.TclError:
             logger.warning("An error occurred value(s) not saved!")
