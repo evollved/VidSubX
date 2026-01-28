@@ -102,6 +102,13 @@ class CustomMessageBox(tk.Toplevel):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
+        if utils.CONFIG.use_dark_mode:
+            set_title_bar_colour(self.winfo_id(), True)
+            self.text_box.configure(bg="#1e1e1e", fg="white")
+        else:
+            set_title_bar_colour(self.winfo_id(), False)
+            self.text_box.configure(bg="white", fg="black")
+
     def append_message(self, message: str) -> None:
         """
         Append a message to the CustomMessageBox.

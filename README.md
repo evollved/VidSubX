@@ -14,6 +14,7 @@ A free program that extracts hard coded subtitles from a video and generates an 
 - Manual resize or change of subtitle area (click and drag mouse to perform).
 - Single and Batch subtitle detection and extraction.
 - Start and Stop subtitle extraction positions can be selected (use arrow keys for precise selection).
+- Switch between Light and Dark Mode under the View menu.
 - Resize video display (Zoom In (Ctrl+Plus), Zoom Out (Ctrl+Minus)).
 - Non subtitle area of the video can be hidden to limit spoilers.
 - An Nvidia GPU can be used to speed up the extraction of the subtitles.
