@@ -269,16 +269,12 @@ class SubtitleExtractorGUI:
 
         self.video_scale = ttk.Scale(video_work_frame, command=self._frame_slider, orient="horizontal", length=600,
                                      state="disabled")
-        self.video_scale.grid(column=0, row=1, padx=(0, 60))  # Only the right side is padded.
+        self.video_scale.grid(column=0, row=1, padx=(0, 20))  # Only the right side is padded.
         # Show timecode of the video scale.
         self.current_scale_value = ttk.Label(video_work_frame)
         self.current_scale_value.grid(column=1, row=1)
         self.total_scale_value = ttk.Label(video_work_frame)
         self.total_scale_value.grid(column=2, row=1)
-
-        video_work_frame.grid_columnconfigure(0, weight=10)  # Video scale
-        video_work_frame.grid_columnconfigure(1, weight=1)  # Current scale
-        video_work_frame.grid_columnconfigure(2, weight=1)  # Total scale
 
     def _work_frame(self) -> None:
         """
@@ -307,11 +303,6 @@ class SubtitleExtractorGUI:
 
         # Create button widget for next video in queue for subtitle area selection.
         self.next_button = ttk.Button(progress_frame, text="Next Video", command=self._next_video)
-
-        progress_frame.grid_columnconfigure(1, weight=10)  # Progress Bar
-        progress_frame.grid_columnconfigure(2, weight=1)  # Previous
-        progress_frame.grid_columnconfigure(3, weight=1)  # Video Label
-        progress_frame.grid_columnconfigure(4, weight=1)  # Next
 
     def _output_frame(self) -> None:
         """
