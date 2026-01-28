@@ -43,7 +43,7 @@ def set_dpi_scaling() -> None:
 
         # Set DPI Awareness  (Windows 10 and 8).
         try:
-            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)  # type: ignore
         except Exception as dpi_error:
             logger.exception(f"An error occurred while setting the dpi: {dpi_error}")
 
@@ -55,8 +55,8 @@ def set_title_bar_colour(window_id: int, use_dark: bool) -> None:
     """
     if platform.system() == "Windows":
         try:
-            set_window_attribute = ctypes.windll.dwmapi.DwmSetWindowAttribute
-            get_parent = ctypes.windll.user32.GetParent
+            set_window_attribute = ctypes.windll.dwmapi.DwmSetWindowAttribute  # type: ignore
+            get_parent = ctypes.windll.user32.GetParent  # type: ignore
             hwnd = get_parent(window_id)
             rendering_policy = ctypes.c_int(1 if use_dark else 0)
             # 20 is the ID for the Immersive Dark Mode attribute
@@ -164,7 +164,7 @@ class SubtitleExtractorGUI:
         if platform.system() == "Windows":
             self.root.iconbitmap(self.icon_file)
         self.root.grid_columnconfigure(0, weight=1)
-        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_rowconfigure(1, weight=1)  # The main frame
         self.style = ttk.Style()
         self.default_theme = self.style.theme_use()
         # Create window menu bar.
@@ -172,7 +172,7 @@ class SubtitleExtractorGUI:
         # Create main frame that will contain other frames.
         self.main_frame = ttk.Frame(self.root, padding=(5, 5, 5, 0))
         # Main frame's position in root window.
-        self.main_frame.grid(column=0, row=0, sticky="N, S, E, W")
+        self.main_frame.grid(column=0, row=1, sticky="N, S, E, W")
         self.main_frame.grid_columnconfigure(0, weight=1)
         self.main_frame.grid_rowconfigure(0, weight=1)  # Video Frame
         self.main_frame.grid_rowconfigure(1, weight=1)  # Work Frame
@@ -188,39 +188,63 @@ class SubtitleExtractorGUI:
         self._toggle_theme()
         self.root.update_idletasks()
         self.root.deiconify()
+        self.root.minsize(self.root.winfo_width(), self.root.winfo_height())  # Custom menubar will always be visible
 
     def _menu_bar(self) -> None:
         # Remove dashed lines that come default with tkinter menu bar.
         self.root.option_add('*tearOff', tk.FALSE)
 
-        # Create menu bar in root window.
-        self.menubar = tk.Menu(self.root)
-        self.root.config(menu=self.menubar)
+        # Create menu bar frame in root window.
+        self.menubar_frame = tk.Frame(self.root)
+        self.menubar_frame.grid(column=0, row=0, sticky="E, W")
+        # Common styles
+        menu_style = {"padx": 8, "bd": 0}
 
-        # Create menus for menu bar.
-        self.file_menu = tk.Menu(self.menubar)
-        self.view_menu = tk.Menu(self.menubar)
+        # File Menu
+        self.file_mb = tk.Menubutton(self.menubar_frame, text="File", **menu_style)
+        self.file_menu = tk.Menu(self.file_mb)
+        self.file_mb["menu"] = self.file_menu
+        self.file_mb.grid(column=0, row=0)
 
-        self.menubar.add_cascade(menu=self.file_menu, label="File")
-        self.menubar.add_cascade(menu=self.view_menu, label="View")
-        self.menubar.add_command(label="Preferences", command=self._preferences)
-        self.menubar.add_command(label="Detect Subtitles", command=self._run_sub_detection, state="disabled")
-        self.menubar.add_command(label="Hide Non-SubArea", command=self._hide_non_subarea, state="disabled")
-        self.menubar.add_command(label="||", state="disabled")
-        self.menubar.add_command(label="Set Start Frame", command=self._set_current_start_frame, state="disabled")
-        self.menubar.add_command(label="Set Stop Frame", command=self._set_current_stop_frame, state="disabled")
-
-        # Add menu items to file menu.
         self.file_menu.add_command(label="Open file(s)", command=self._open_files)
         self.file_menu.add_command(label="Close", command=self._on_closing)
 
-        # Add menu items to view menu.
+        # View Menu
+        self.view_mb = tk.Menubutton(self.menubar_frame, text="View", **menu_style)
+        self.view_menu = tk.Menu(self.view_mb)
+        self.view_mb["menu"] = self.view_menu
+        self.view_mb.grid(column=1, row=0)
+
+        # View Items
         self.use_dark_mode = tk.BooleanVar(value=utils.CONFIG.use_dark_mode)
         self.view_menu.add_checkbutton(label="Dark Mode", command=self._toggle_theme, variable=self.use_dark_mode)
         self.view_menu.add_command(label="Video Zoom In   (Ctrl+Plus)", command=lambda: self.resize_video("equal"))
         self.view_menu.add_command(label="Video Zoom Out  (Ctrl+Minus)", command=lambda: self.resize_video("minus"))
         self.root.bind("<Control-equal>", self.resize_video)  # equal instead of plus. It prevents need for shift key.
         self.root.bind("<Control-minus>", self.resize_video)
+
+        # Direct Action Buttons
+        self.menu_pref_btn = tk.Button(self.menubar_frame, text="Preferences", command=self._preferences, **menu_style)
+        self.menu_pref_btn.grid(column=2, row=0)
+
+        self.menu_detect_btn = tk.Button(self.menubar_frame, text="Detect Subtitles", command=self._run_sub_detection,
+                                         state="disabled", **menu_style)
+        self.menu_detect_btn.grid(column=3, row=0)
+
+        self.menu_hide_btn = tk.Button(self.menubar_frame, text="Hide Non-SubArea", command=self._hide_non_subarea,
+                                       state="disabled", **menu_style)
+        self.menu_hide_btn.grid(column=4, row=0)
+
+        self.sep_label = tk.Label(self.menubar_frame, text="||")
+        self.sep_label.grid(column=5, row=0)
+
+        self.menu_start_btn = tk.Button(self.menubar_frame, text="Set Start Frame",
+                                        command=self._set_current_start_frame, state="disabled", **menu_style)
+        self.menu_start_btn.grid(column=6, row=0)
+
+        self.menu_stop_btn = tk.Button(self.menubar_frame, text="Set Stop Frame", command=self._set_current_stop_frame,
+                                       state="disabled", **menu_style)
+        self.menu_stop_btn.grid(column=7, row=0)
 
     def _video_frame(self) -> None:
         """
@@ -487,7 +511,7 @@ class SubtitleExtractorGUI:
             logger.debug("Rectangle for non subtitle area created.")
             x1, y1, x2, y2 = self.rescale(subtitle_area=self.current_non_subarea())
             self.non_subarea_rect = self.canvas.create_rectangle(x1, y1, x2, y2, fill="black")
-        self.menubar.entryconfig(4, label="Show Non-SubArea", command=self._show_non_subarea)  # Change button config.
+        self.menu_hide_btn.configure(text="Show Non-SubArea", command=self._show_non_subarea)  # Change button config.
 
     def _show_non_subarea(self) -> None:
         """
@@ -496,7 +520,7 @@ class SubtitleExtractorGUI:
         logger.debug("Rectangle for non subtitle area deleted.")
         self.canvas.delete(self.non_subarea_rect)
         self.non_subarea_rect = None
-        self.menubar.entryconfig(4, label="Hide Non-SubArea", command=self._hide_non_subarea)
+        self.menu_hide_btn.configure(text="Hide Non-SubArea", command=self._hide_non_subarea)
 
     def _set_current_non_subarea(self) -> None:
         """
@@ -843,7 +867,7 @@ class SubtitleExtractorGUI:
         utils.Process.stop_process()
         if not self.thread_running:
             self._set_gui_state("normal", "detection")
-            self.menubar.entryconfig(3, label="Detect Subtitles", command=self._run_sub_detection)
+            self.menu_detect_btn.configure(text="Detect Subtitles", command=self._run_sub_detection)
 
     def _run_sub_detection(self) -> None:
         """
@@ -851,7 +875,7 @@ class SubtitleExtractorGUI:
         """
         utils.Process.start_process()
         self._set_gui_state("disabled", "detection")
-        self.menubar.entryconfig(3, label="Stop Sub Detection", command=self._stop_sub_detection_process)
+        self.menu_detect_btn.configure(text="Stop Sub Detection", command=self._stop_sub_detection_process)
         Thread(target=self._detect_subtitles, daemon=True).start()
 
     def extract_subtitles(self) -> None:
@@ -924,8 +948,8 @@ class SubtitleExtractorGUI:
         """
         logger.debug("Setting gui state")
         self.file_menu.entryconfig(0, state=state)  # Open File button.
-        self.menubar.entryconfig(1, state=state)  # Open View button.
-        self.menubar.entryconfig(2, state=state)  # Preferences button.
+        self.view_mb.configure(state=state)  # type: ignore
+        self.menu_pref_btn.configure(state=state)  # type: ignore
 
         if process_name == "opening":
             self.previous_button.configure(state=state)
@@ -935,10 +959,10 @@ class SubtitleExtractorGUI:
             self.run_button.configure(state=state)
 
         if process_name in ("extraction", "opening"):
-            self.menubar.entryconfig(3, state=state)  # Detect button.
-            self.menubar.entryconfig(4, state=state)  # Hide Non-SubArea button.
-            self.menubar.entryconfig(6, state=state)  # Set Start Frame button.
-            self.menubar.entryconfig(7, state=state)  # Set Stop Frame button.
+            self.menu_detect_btn.configure(state=state)  # type: ignore
+            self.menu_hide_btn.configure(state=state)  # type: ignore
+            self.menu_start_btn.configure(state=state)  # type: ignore
+            self.menu_stop_btn.configure(state=state)  # type: ignore
             self.video_scale.configure(state=state)
 
     @staticmethod
