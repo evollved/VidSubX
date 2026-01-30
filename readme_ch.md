@@ -1,4 +1,4 @@
-简体中文 | [English](README.md) | [Русский](README_ru.md)
+简体中文 | [English](README.md) | [Russian](README_ru.md)
 
 # VidSubX
 
