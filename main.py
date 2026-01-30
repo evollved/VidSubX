@@ -1,6 +1,5 @@
 import logging
 import shutil
-import tempfile
 from datetime import timedelta
 from difflib import SequenceMatcher
 from itertools import pairwise
@@ -10,6 +9,7 @@ import cv2 as cv
 
 import utilities.utils as utils
 from utilities.frames_to_text import extract_bboxes, frames_to_text, setup_ocr
+from utilities.gpu_detection import detect_and_log_gpu_info  # Импорт нового модуля
 from utilities.logger_setup import setup_logging
 from utilities.video_to_frames import extract_frames, video_to_frames
 
@@ -152,7 +152,7 @@ class SubtitleExtractor:
         """
         self.video_path, self.subtitle_texts = None, {}
         self.divider = "--"  # Characters for separating time durations(ms) in key name.
-        self.vd_output_dir = Path(tempfile.gettempdir()) / utils.CONFIG.program_name  # Cache directory.
+        self.vd_output_dir = Path(__file__).parent / "output"  # Cache directory.
         # Extracted video frame storage directory. Extracted text file storage directory.
         self.frame_output, self.text_output = self.vd_output_dir / "frames", self.vd_output_dir / "extracted texts"
 
@@ -460,6 +460,18 @@ class SubtitleExtractor:
         sub_area = sub_area or self.default_sub_area(frame_w, frame_h)
         sub_area = self.clamp_sub_area(sub_area, frame_w, frame_h)
 
+        # Логирование информации о GPU
+        if utils.CONFIG.use_gpu:
+            from utilities.gpu_detection import GPUDetector
+            gpu_info = GPUDetector.get_system_gpu_info()
+            if gpu_info["has_gpu"]:
+                logger.info(f"GPU Provider: {utils.CONFIG.gpu_provider.upper()}")
+                if gpu_info["gpus"]:
+                    gpu = gpu_info["gpus"][0]
+                    logger.info(f"GPU: {gpu['name']}, Memory: {gpu['memory_used']:.0f}/{gpu['memory_total']:.0f}MB")
+            else:
+                logger.info("Using CPU mode (no compatible GPU detected)")
+
         logger.info(f"File Path: {self.video_path}\n"
                     f"Frame Total: {frame_total:,}, Frame Rate: {fps}\n"
                     f"Resolution: {frame_w} X {frame_h}\n"
@@ -482,6 +494,8 @@ class SubtitleExtractor:
 if __name__ == '__main__':
     setup_logging()
     logger.debug("\n\nMain program Started.")
+    # Логирование информации о GPU при запуске
+    detect_and_log_gpu_info()
     setup_ocr()
     test_se = SubtitleExtractor()
     test_vid = r""
