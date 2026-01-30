@@ -644,10 +644,14 @@ class SubtitleExtractorGUI:
         """
         start_frame = self.video_queue[f"{self.current_video}"][1]
         stop_frame = self.video_queue[f"{self.current_video}"][2]
-        if start_frame or stop_frame:
-            start_dur = self.sub_ex.frame_no_to_duration(start_frame, self.current_fps) if start_frame else start_frame
-            stop_dur = self.sub_ex.frame_no_to_duration(stop_frame, self.current_fps) if stop_frame else stop_frame
+        start_dur = self.sub_ex.frame_no_to_duration(start_frame, self.current_fps) if start_frame else start_frame
+        stop_dur = self.sub_ex.frame_no_to_duration(stop_frame, self.current_fps) if stop_frame else stop_frame
+        if start_dur and stop_dur:
             self.status_label.configure(text=f"Start Frame: {start_dur}, Stop Frame: {stop_dur}")
+        elif start_dur:
+            self.status_label.configure(text=f"Start Frame: {start_dur}")
+        elif stop_dur:
+            self.status_label.configure(text=f"Stop Frame: {stop_dur}")
         else:
             self.status_label.configure(text="")
 
