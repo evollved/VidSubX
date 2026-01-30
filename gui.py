@@ -197,6 +197,24 @@ class SubtitleExtractorGUI:
         self.root.deiconify()
         self.root.minsize(self.root.winfo_width(), self.root.winfo_height())  # Custom menubar will always be visible
 
+    def _apply_menu_hover(self, force_update: bool = False) -> None:
+        widgets = (self.menu_pref_btn, self.menu_detect_btn, self.menu_hide_btn,
+                   self.menu_start_btn, self.menu_stop_btn)
+        for widget in widgets:
+            # If disabled, or new colors are needed, the binding is removed
+            if widget["state"] == "disabled" or force_update:
+                widget.unbind("<Enter>")  # Safe to do even if not bound
+                widget.unbind("<Leave>")
+                widget._hover_bound = False
+
+            # If normal and not currently bound (or just reset above)
+            if widget["state"] == "normal" and not getattr(widget, "_hover_bound", False):
+                normal_bg = widget.cget("bg")
+                active_bg = widget.cget("activebackground") or normal_bg
+                widget.bind("<Enter>", lambda _, w=widget, bg=active_bg: w.configure(bg=bg))
+                widget.bind("<Leave>", lambda _, w=widget, bg=normal_bg: w.configure(bg=bg))
+                widget._hover_bound = True
+
     def _menu_bar(self) -> None:
         # Remove dashed lines that come default with tkinter menu bar.
         self.root.option_add('*tearOff', tk.FALSE)
@@ -379,6 +397,7 @@ class SubtitleExtractorGUI:
             self.view_menu.configure(**menu_config)
             self.canvas.configure(bg="SystemButtonFace")
             self.text_output_widget.configure(bg="white", fg="black")
+        self._apply_menu_hover(True)
         utils.CONFIG.set_config(use_dark_mode=self.use_dark_mode.get())
 
     def resize_video(self, args: tk.Event | str) -> None:
@@ -986,6 +1005,8 @@ class SubtitleExtractorGUI:
             self.menu_start_btn.configure(state=state)  # type: ignore
             self.menu_stop_btn.configure(state=state)  # type: ignore
             self.video_scale.configure(state=state)
+
+        self._apply_menu_hover()  # Add or remove hover as the state changes
 
     @staticmethod
     def update_checker() -> None:
