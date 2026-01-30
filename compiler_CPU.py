@@ -2,9 +2,37 @@ import platform
 import shutil
 import site
 import subprocess
+import sys
+import os
 from datetime import timedelta
 from pathlib import Path
 from time import perf_counter
+
+
+def get_system_info() -> dict:
+    """Возвращает информацию о системе."""
+    system = platform.system()
+    arch = platform.machine()
+    
+    if system == "Windows":
+        # Для Windows определяем разрядность
+        is_64bit = sys.maxsize > 2**32
+        arch = "x64" if is_64bit else "x86"
+    elif system == "Linux":
+        # Для Linux определяем конкретную архитектуру
+        if "arm" in arch.lower() or "aarch" in arch.lower():
+            arch = "arm64" if "64" in arch else "arm"
+        elif "x86" in arch.lower():
+            is_64bit = sys.maxsize > 2**32
+            arch = "x64" if is_64bit else "x86"
+    
+    return {
+        "system": system,
+        "arch": arch,
+        "is_windows": system == "Windows",
+        "is_linux": system == "Linux",
+        "is_mac": system == "Darwin"
+    }
 
 
 def run_command(command: list, use_shell: bool = False) -> None:
@@ -12,14 +40,20 @@ def run_command(command: list, use_shell: bool = False) -> None:
     print(f"\n🔧 Running command: {' '.join(command)}")
     result = subprocess.run(command, check=True, shell=use_shell, capture_output=True, text=True)
     if result.stdout:
-        print(f"Output: {result.stdout[:500]}...")  # Показываем первые 500 символов вывода
+        # Показываем первые 500 символов вывода
+        output_preview = result.stdout[:500]
+        if len(result.stdout) > 500:
+            output_preview += "..."
+        print(f"Output: {output_preview}")
     return result
 
 
 def install_requirements_cpu() -> None:
     """Устанавливает требования для CPU версии."""
+    sys_info = get_system_info()
+    
     print("\n" + "="*60)
-    print("Installing CPU requirements...")
+    print(f"Installing CPU requirements for {sys_info['system']} ({sys_info['arch']})...")
     print("="*60)
     
     # Удаляем GPU версию если установлена
@@ -44,10 +78,32 @@ def install_requirements_cpu() -> None:
         if alt_req_file.exists():
             run_command(['pip', 'install', '-r', 'requirements.txt'])
     
-    # Устанавливаем нужные пакеты
+    # Устанавливаем нужные пакеты в зависимости от системы
     print("\nInstalling required packages...")
-    run_command(["pip", "install", "onnxruntime"])
-    run_command(["pip", "install", "Nuitka==2.8.1"])
+    
+    if sys_info["is_windows"]:
+        # Для Windows устанавливаем стандартный onnxruntime
+        run_command(["pip", "install", "onnxruntime"])
+    elif sys_info["is_linux"]:
+        # Для Linux проверяем архитектуру
+        if sys_info["arch"] in ["arm", "arm64"]:
+            print("Installing onnxruntime for ARM architecture...")
+            try:
+                run_command(["pip", "install", "onnxruntime-arm"])
+            except:
+                print("⚠ Could not install onnxruntime-arm, trying standard version...")
+                run_command(["pip", "install", "onnxruntime"])
+        else:
+            run_command(["pip", "install", "onnxruntime"])
+    
+    # Устанавливаем Nuitka
+    print("\nInstalling Nuitka...")
+    try:
+        run_command(["pip", "install", "Nuitka==2.8.1"])
+    except:
+        print("⚠ Could not install specific Nuitka version, trying latest...")
+        run_command(["pip", "install", "Nuitka"])
+    
     print("✓ All packages installed")
 
 
@@ -123,7 +179,15 @@ def download_all_models() -> None:
         print("Trying to install missing dependencies...")
         # Пробуем установить paddlepaddle если его нет
         try:
-            run_command(["pip", "install", "paddlepaddle"])
+            sys_info = get_system_info()
+            if sys_info["is_windows"]:
+                run_command(["pip", "install", "paddlepaddle"])
+            elif sys_info["is_linux"]:
+                # Для Linux устанавливаем соответствующий пакет
+                if sys_info["arch"] in ["arm", "arm64"]:
+                    run_command(["pip", "install", "paddlepaddle==2.5.2"])
+                else:
+                    run_command(["pip", "install", "paddlepaddle"])
             print("✓ Installed paddlepaddle, retrying...")
             download_all_models()  # Рекурсивный вызов
         except:
@@ -170,8 +234,10 @@ def remove_non_onnx_models() -> None:
 
 def compile_program_cpu() -> None:
     """Компилирует программу с Nuitka для CPU."""
+    sys_info = get_system_info()
+    
     print("\n" + "="*60)
-    print("Compiling with Nuitka for CPU...")
+    print(f"Compiling with Nuitka for CPU ({sys_info['system']})...")
     print("="*60)
     
     # Находим главный файл
@@ -200,16 +266,40 @@ def compile_program_cpu() -> None:
                 print(f"✓ Found alternative icon: {icon_path}")
                 break
     
+    # Определяем количество ядер процессора
+    try:
+        cpu_count = os.cpu_count() or 4
+        jobs = max(1, cpu_count // 2)
+        print(f"📊 CPU cores: {cpu_count}, using {jobs} jobs for compilation")
+    except:
+        jobs = 4  # Значение по умолчанию
+        print(f"📊 Using default job count: {jobs}")
+    
     # Собираем команду Nuitka
     cmd = [
         "nuitka",
         "--standalone",
         "--enable-plugin=tk-inter",
-        "--windows-console-mode=disable",
         "--remove-output",
+        f"--jobs={jobs}",
         "--output-dir=dist_cpu",
     ]
     
+    # Добавляем системно-зависимые опции
+    if sys_info["is_windows"]:
+        cmd.append("--windows-console-mode=disable")
+        if sys_info["arch"] == "x64":
+            cmd.append("--mingw64")
+        else:
+            cmd.append("--mingw32")
+    elif sys_info["is_linux"]:
+        # Проверяем наличие PNG иконки для Linux
+        png_icon = Path("docs/images/vsx.png")
+        if png_icon.exists():
+            cmd.append(f"--linux-icon={png_icon}")
+        if sys_info["arch"] in ["arm", "arm64"]:
+            cmd.append("--lto=no")  # Отключаем LTO для ARM
+            
     # Добавляем опции только если файлы существуют
     if models_dir.exists():
         cmd.append("--include-data-dir=models=models")
@@ -219,12 +309,27 @@ def compile_program_cpu() -> None:
         str(main_file)  # Главный файл В КОНЦЕ команды
     ])
     
-    # Добавляем иконку если найдена
-    if icon_path.exists():
+    # Добавляем иконку если найдена (только для Windows)
+    if sys_info["is_windows"] and icon_path.exists():
         cmd.extend([
             f"--include-data-files={icon_path}=docs/images/vsx.ico",
             f"--windows-icon-from-ico={icon_path}"
         ])
+    elif sys_info["is_linux"]:
+        # Для Linux ищем PNG иконку
+        png_icon = icon_path.with_suffix('.png')
+        if not png_icon.exists():
+            # Ищем в других местах
+            for png_file in Path.cwd().rglob("*.png"):
+                if "vsx" in png_file.name.lower() or "icon" in png_file.name.lower():
+                    png_icon = png_file
+                    print(f"✓ Found PNG icon for Linux: {png_icon}")
+                    break
+        
+        if png_icon.exists():
+            cmd.extend([
+                f"--include-data-files={png_icon}=docs/images/vsx.png"
+            ])
     
     print(f"\n📦 Nuitka command:")
     print(" ".join(cmd))
@@ -257,6 +362,8 @@ def compile_program_cpu() -> None:
 
 def rename_exe_cpu() -> None:
     """Переименовывает исполняемый файл для CPU версии."""
+    sys_info = get_system_info()
+    
     print("\nRenaming executable...")
     
     # Ищем скомпилированный файл
@@ -266,47 +373,44 @@ def rename_exe_cpu() -> None:
         print("⚠ Warning: dist_cpu directory not found")
         return
     
+    # Определяем расширение для системы
+    exe_ext = ".exe" if sys_info["is_windows"] else ""
+    
     # Ищем gui.dist или другие варианты
     possible_paths = [
-        dist_dir / "gui.dist/gui.exe",
-        dist_dir / "gui.dist/gui",
-        dist_dir / "gui.exe",
-        dist_dir / "gui",
+        dist_dir / f"gui.dist/gui{exe_ext}",
+        dist_dir / f"gui{exe_ext}",
     ]
     
     for exe_file in possible_paths:
         if exe_file.exists():
             print(f"✓ Found executable: {exe_file}")
             
-            # Для Linux
-            if platform.system() != "Windows":
-                new_name = exe_file.with_name("VSX-CPU")
-            else:
-                new_name = exe_file.with_name("VSX-CPU.exe")
-            
+            new_name = exe_file.with_name(f"VSX-CPU-{sys_info['system']}-{sys_info['arch']}{exe_ext}")
             exe_file.rename(new_name)
             print(f"✓ Renamed to: {new_name}")
             return
     
     # Если не нашли, ищем любой исполняемый файл
     for file in dist_dir.rglob("*"):
-        if file.is_file() and (file.suffix == '.exe' or file.stat().st_mode & 0o111):
-            print(f"✓ Found executable: {file}")
-            
-            if platform.system() != "Windows":
-                new_name = file.with_name("VSX-CPU")
-            else:
-                new_name = file.with_name("VSX-CPU.exe")
-            
-            file.rename(new_name)
-            print(f"✓ Renamed to: {new_name}")
-            return
+        if file.is_file():
+            # Проверяем по расширению или правам выполнения
+            if (sys_info["is_windows"] and file.suffix == '.exe') or \
+               (sys_info["is_linux"] and os.access(file, os.X_OK)):
+                print(f"✓ Found executable: {file}")
+                
+                new_name = file.with_name(f"VSX-CPU-{sys_info['system']}-{sys_info['arch']}{exe_ext}")
+                file.rename(new_name)
+                print(f"✓ Renamed to: {new_name}")
+                return
     
     print("⚠ Warning: No executable file found to rename")
 
 
 def zip_files_cpu() -> None:
     """Архивирует файлы дистрибутива для CPU."""
+    sys_info = get_system_info()
+    
     print("\n" + "="*60)
     print("Creating distribution archive...")
     print("="*60)
@@ -330,8 +434,10 @@ def zip_files_cpu() -> None:
     
     print(f"Found distribution directory: {dist_dir}")
     
-    system = platform.system()
-    name = f"VSX-{system}-CPU-v1.0"
+    # Создаем имя архива с информацией о системе
+    system_name = sys_info['system'].lower()
+    arch_name = sys_info['arch'].lower()
+    name = f"VSX-CPU-{system_name}-{arch_name}-v1.0"
     
     # Удаляем старый архив если существует
     old_zip = Path(f"{name}.zip")
@@ -368,18 +474,23 @@ def delete_dist_dir_cpu() -> None:
 
 def main_cpu() -> None:
     """Основная функция компиляции CPU версии."""
+    sys_info = get_system_info()
+    
     start_time = perf_counter()
     
     try:
         print("\n" + "="*80)
-        print("STARTING CPU VERSION COMPILATION")
+        print(f"STARTING CPU VERSION COMPILATION FOR {sys_info['system'].upper()} ({sys_info['arch']})")
         print("="*80)
         
         # Показываем текущую директорию
         print(f"\n📁 Current directory: {Path.cwd()}")
         print(f"📁 Contents:")
         for item in Path.cwd().iterdir():
-            print(f"  {item.name}{'/' if item.is_dir() else ''}")
+            if item.is_dir():
+                print(f"  {item.name}/")
+            else:
+                print(f"  {item.name}")
         
         # 1. Установка зависимостей
         install_requirements_cpu()
