@@ -23,10 +23,38 @@ def setup_ocr() -> None:
 
 
 def setup_ocr_device() -> None:
-    if utils.CONFIG.use_gpu and "CUDAExecutionProvider" in ort.get_available_providers():
+    """
+    Настройка устройств для OCR с поддержкой CUDA, DirectML и OpenVINO
+    """
+    available_providers = ort.get_available_providers()
+    
+    if not utils.CONFIG.use_gpu:
+        # CPU режим
+        utils.CONFIG.ocr_opts["use_gpu"] = False
+        sess_opt = ort.SessionOptions()
+        sess_opt.intra_op_num_threads = utils.CONFIG.cpu_onnx_intra_threads
+        utils.CONFIG.ocr_opts["onnx_sess_options"] = sess_opt
+        return
+    
+    gpu_provider = utils.CONFIG.gpu_provider.lower()
+    
+    if gpu_provider == "cuda" and "CUDAExecutionProvider" in available_providers:
         utils.CONFIG.ocr_opts["use_gpu"] = True
         ort.preload_dlls()
+        
+    elif gpu_provider == "directml" and "DmlExecutionProvider" in available_providers:
+        utils.CONFIG.ocr_opts["use_gpu"] = True
+        # Настройка DirectML провайдера
+        utils.CONFIG.ocr_opts["providers"] = ['DmlExecutionProvider']
+        
+    elif gpu_provider == "openvino" and "OpenVINOExecutionProvider" in available_providers:
+        utils.CONFIG.ocr_opts["use_gpu"] = True
+        # Настройка OpenVINO провайдера
+        utils.CONFIG.ocr_opts["providers"] = ['OpenVINOExecutionProvider']
+        
     else:
+        # Fallback на CPU если выбранный GPU провайдер недоступен
+        logger.warning(f"GPU provider '{gpu_provider}' not available. Falling back to CPU.")
         utils.CONFIG.ocr_opts["use_gpu"] = False
         sess_opt = ort.SessionOptions()
         sess_opt.intra_op_num_threads = utils.CONFIG.cpu_onnx_intra_threads
@@ -79,7 +107,11 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     """
     batch_size = utils.CONFIG.text_extraction_batch_size  # Size of files given to each processor.
     prefix, device = "Text Extraction", "GPU" if utils.CONFIG.ocr_opts["use_gpu"] else "CPU"
-    no_processes = utils.CONFIG.gpu_ocr_processes if device == "GPU" else utils.CONFIG.cpu_ocr_processes
+    if device == "GPU":
+        no_processes = utils.CONFIG.gpu_ocr_processes
+        device = f"{device} ({utils.CONFIG.gpu_provider.upper()})"
+    else:
+        no_processes = utils.CONFIG.cpu_ocr_processes
     line_sep = "\n" if utils.CONFIG.line_break else " "
 
     if utils.Process.interrupt_process:  # Cancel if process has been cancelled by gui.
