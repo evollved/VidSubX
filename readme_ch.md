@@ -26,7 +26,7 @@
 - 针对CPU配置自动优化以获得最佳性能。
 - 发布的版本无需安装Python即可运行。
 - 在Windows系统上，字幕检测和提取完成后会显示Toast通知。
-- 可通过[偏好设置文档](docs/Preferences.md)修改提取字幕时的选项。
+- 可通过[偏好设置文档](docs/Preferences_ch.md)修改提取字幕时的选项。
 - 通过[PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)支持多语言。它们将在需要时自动下载。
 
 **[支持的语言及缩写](docs/Supported_Languages.md)**
