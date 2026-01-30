@@ -7,17 +7,20 @@ A free program that extracts hard coded subtitles from a video and generates an 
 
 <img src="docs/images/gui%20screenshot.png" width="500">
 
-
 **Features**
 
 - Detect subtitle area by searching common area.
 - Manual resize or change of subtitle area (click and drag mouse to perform).
 - Single and Batch subtitle detection and extraction.
 - Start and Stop subtitle extraction positions can be selected (use arrow keys for precise selection).
-- Switch between Light and Dark Mode under the View menu.
 - Resize video display (Zoom In (Ctrl+Plus), Zoom Out (Ctrl+Minus)).
 - Non subtitle area of the video can be hidden to limit spoilers.
-- An Nvidia GPU can be used to speed up the extraction of the subtitles.
+- **Multi-GPU Support**: CUDA (NVIDIA), DirectML (AMD), OpenVINO (Intel)
+- **Automatic Detection**: System detects available GPU providers
+- **GUI Selection**: User can select GPU provider in settings
+- **Performance Monitoring**: Separate optimization for CPU and GPU
+- **GPU Information Logging**: Detailed information about graphics cards
+- **Fallback Compatibility**: Automatic fallback to CPU if GPU is unavailable
 - Auto optimization for CPU config for best performance.
 - The released copies can be run without having python installed.
 - Toast Notification available on Windows upon completion of subtitle detection and extraction.
@@ -67,3 +70,5 @@ Run `gui.py` to use Graphical interface and `main.py` to use Terminal.
 ### Compile Instructions
 
 Run `compiler.py` to build compiled program
+
+For virus warning the file can be submitted [here](https://www.microsoft.com/en-us/wdsi/filesubmission) for analysis.
