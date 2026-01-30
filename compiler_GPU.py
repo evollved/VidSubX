@@ -2,9 +2,37 @@ import platform
 import shutil
 import site
 import subprocess
+import sys
+import os
 from datetime import timedelta
 from pathlib import Path
 from time import perf_counter
+
+
+def get_system_info() -> dict:
+    """Возвращает информацию о системе."""
+    system = platform.system()
+    arch = platform.machine()
+    
+    if system == "Windows":
+        # Для Windows определяем разрядность
+        is_64bit = sys.maxsize > 2**32
+        arch = "x64" if is_64bit else "x86"
+    elif system == "Linux":
+        # Для Linux определяем конкретную архитектуру
+        if "arm" in arch.lower() or "aarch" in arch.lower():
+            arch = "arm64" if "64" in arch else "arm"
+        elif "x86" in arch.lower():
+            is_64bit = sys.maxsize > 2**32
+            arch = "x64" if is_64bit else "x86"
+    
+    return {
+        "system": system,
+        "arch": arch,
+        "is_windows": system == "Windows",
+        "is_linux": system == "Linux",
+        "is_mac": system == "Darwin"
+    }
 
 
 def run_command(command: list, use_shell: bool = False) -> None:
@@ -12,14 +40,20 @@ def run_command(command: list, use_shell: bool = False) -> None:
     print(f"\n🔧 Running command: {' '.join(command)}")
     result = subprocess.run(command, check=True, shell=use_shell, capture_output=True, text=True)
     if result.stdout:
-        print(f"Output: {result.stdout[:500]}...")  # Показываем первые 500 символов вывода
+        # Показываем первые 500 символов вывода
+        output_preview = result.stdout[:500]
+        if len(result.stdout) > 500:
+            output_preview += "..."
+        print(f"Output: {output_preview}")
     return result
 
 
 def install_requirements_gpu() -> None:
     """Устанавливает требования для GPU версии."""
+    sys_info = get_system_info()
+    
     print("\n" + "="*60)
-    print("Installing GPU requirements...")
+    print(f"Installing GPU requirements for {sys_info['system']} ({sys_info['arch']})...")
     print("="*60)
     
     # Удаляем CPU версию если установлена
@@ -46,10 +80,31 @@ def install_requirements_gpu() -> None:
         else:
             print("⚠ No requirements file found, installing basic packages...")
     
-    # Устанавливаем нужные пакеты для GPU
+    # Устанавливаем нужные пакеты для GPU в зависимости от системы
     print("\nInstalling GPU packages...")
-    run_command(["pip", "install", "onnxruntime-gpu"])
-    run_command(["pip", "install", "Nuitka==2.8.1"])
+    
+    if sys_info["is_windows"]:
+        # Для Windows устанавливаем onnxruntime-gpu
+        run_command(["pip", "install", "onnxruntime-gpu"])
+    elif sys_info["is_linux"]:
+        # Для Linux устанавливаем соответствующую версию
+        if sys_info["arch"] in ["arm", "arm64"]:
+            print("⚠ GPU acceleration is limited on ARM architecture")
+            run_command(["pip", "install", "onnxruntime"])
+        else:
+            try:
+                run_command(["pip", "install", "onnxruntime-gpu"])
+            except:
+                print("⚠ Could not install onnxruntime-gpu, trying standard version...")
+                run_command(["pip", "install", "onnxruntime"])
+    
+    # Устанавливаем Nuitka
+    print("\nInstalling Nuitka...")
+    try:
+        run_command(["pip", "install", "Nuitka==2.8.1"])
+    except:
+        print("⚠ Could not install specific Nuitka version, trying latest...")
+        run_command(["pip", "install", "Nuitka"])
     
     # Проверяем установку CUDA
     print("\nChecking CUDA availability...")
@@ -96,9 +151,11 @@ def find_gui_file() -> Path:
 
 def download_all_models_gpu() -> None:
     """Загружает все модели OCR для GPU."""
+    sys_info = get_system_info()
+    
     try:
         print("\n" + "="*60)
-        print("Downloading models for GPU...")
+        print(f"Downloading models for GPU ({sys_info['system']})...")
         print("="*60)
         
         # Импортируем здесь, чтобы не вызывать ошибки раньше времени
@@ -139,7 +196,13 @@ def download_all_models_gpu() -> None:
         print("Trying to install missing dependencies...")
         # Пробуем установить paddlepaddle если его нет
         try:
-            run_command(["pip", "install", "paddlepaddle-gpu"])
+            if sys_info["is_windows"]:
+                run_command(["pip", "install", "paddlepaddle-gpu"])
+            elif sys_info["is_linux"]:
+                if sys_info["arch"] in ["arm", "arm64"]:
+                    run_command(["pip", "install", "paddlepaddle==2.5.2"])
+                else:
+                    run_command(["pip", "install", "paddlepaddle-gpu"])
             print("✓ Installed paddlepaddle-gpu, retrying...")
             download_all_models_gpu()  # Рекурсивный вызов
         except:
@@ -187,98 +250,190 @@ def remove_non_onnx_models() -> None:
 
 
 def get_gpu_files() -> None:
-    """Копирует необходимые GPU файлы."""
+    """Копирует необходимые GPU файлы в зависимости от системы."""
+    sys_info = get_system_info()
+    
     print("\n" + "="*60)
-    print("Checking GPU runtime files...")
+    print(f"Checking GPU runtime files for {sys_info['system']}...")
     print("="*60)
     
     try:
-        # Ищем nvidia директории
-        site_packages = site.getsitepackages()
-        if not site_packages:
-            print("⚠ Could not find site-packages directory")
-            return
-        
-        gpu_files_dir = Path(site_packages[1] if len(site_packages) > 1 else site_packages[0]) / "nvidia"
-        
-        if not gpu_files_dir.exists():
-            print(f"⚠ NVIDIA directory not found at: {gpu_files_dir}")
-            print("Looking for CUDA in common locations...")
-            
-            # Проверяем стандартные пути для CUDA
-            cuda_paths = [
-                Path("/usr/local/cuda"),
-                Path("/usr/local/cuda-11.8"),
-                Path("/usr/local/cuda-12.0"),
-                Path("/usr/local/cuda-12.1"),
-                Path("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA"),
-                Path.home() / ".cuda",
-            ]
-            
-            for cuda_path in cuda_paths:
-                if cuda_path.exists():
-                    print(f"✓ Found CUDA at: {cuda_path}")
-                    gpu_files_dir = cuda_path
-                    break
-            else:
-                print("⚠ CUDA not found in standard locations")
-                print("GPU acceleration may not work in the compiled application")
-                return
-        
-        print(f"Found NVIDIA/CUDA directory: {gpu_files_dir}")
-        
-        # Проверяем директорию дистрибутива
-        dist_dir = Path("dist_gpu/gui.dist")
-        if not dist_dir.exists():
-            print("⚠ Distribution directory not found, creating...")
-            dist_dir.mkdir(parents=True, exist_ok=True)
-        
-        required_dirs = ["cudnn", "cufft", "cublas", "cuda_runtime", "bin", "lib64", "lib"]
-        
-        copied_count = 0
-        for dir_name in required_dirs:
-            src_dir = gpu_files_dir / dir_name
-            
-            if src_dir.exists():
-                print(f"\nCopying {dir_name}...")
-                dest_dir = dist_dir / f"nvidia/{dir_name}"
-                dest_dir.parent.mkdir(parents=True, exist_ok=True)
-                
-                try:
-                    if src_dir.is_dir():
-                        # Используем dirs_exist_ok для Python 3.8+
-                        if hasattr(shutil, 'copytree'):
-                            shutil.copytree(src_dir, dest_dir, dirs_exist_ok=True)
-                        else:
-                            # Для старых версий Python
-                            if dest_dir.exists():
-                                shutil.rmtree(dest_dir)
-                            shutil.copytree(src_dir, dest_dir)
-                    else:
-                        shutil.copy2(src_dir, dest_dir)
-                    
-                    print(f"✓ Copied: {src_dir} → {dest_dir}")
-                    copied_count += 1
-                    
-                except Exception as e:
-                    print(f"⚠ Could not copy {dir_name}: {e}")
-            else:
-                print(f"⚠ GPU component not found: {src_dir}")
-        
-        if copied_count > 0:
-            print(f"\n✅ Successfully copied {copied_count} GPU components")
+        if sys_info["is_windows"]:
+            get_gpu_files_windows()
+        elif sys_info["is_linux"]:
+            get_gpu_files_linux()
         else:
-            print("\n⚠ No GPU files were copied")
+            print(f"⚠ GPU file copying not supported for {sys_info['system']}")
             
     except Exception as e:
         print(f"⚠ Error copying GPU files: {e}")
         print("Continuing without GPU runtime files...")
 
 
+def get_gpu_files_windows() -> None:
+    """Копирует GPU файлы для Windows."""
+    print("Looking for CUDA on Windows...")
+    
+    # Стандартные пути для CUDA на Windows
+    cuda_paths = [
+        Path("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA"),
+        Path("C:/CUDA"),
+        Path.home() / "CUDA",
+    ]
+    
+    cuda_version = None
+    cuda_root = None
+    
+    # Ищем установленную CUDA
+    for cuda_path in cuda_paths:
+        if cuda_path.exists():
+            # Ищем версии CUDA
+            for version_dir in cuda_path.iterdir():
+                if version_dir.is_dir() and version_dir.name.startswith("v"):
+                    cuda_version = version_dir.name[1:]  # Убираем 'v'
+                    cuda_root = version_dir
+                    print(f"✓ Found CUDA {cuda_version} at: {cuda_root}")
+                    break
+    
+    if not cuda_root:
+        print("⚠ CUDA not found in standard Windows locations")
+        print("GPU acceleration may not work in the compiled application")
+        return
+    
+    # Проверяем директорию дистрибутива
+    dist_dir = Path("dist_gpu/gui.dist")
+    if not dist_dir.exists():
+        print("⚠ Distribution directory not found, creating...")
+        dist_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Копируем необходимые библиотеки
+    required_files = {
+        "bin": ["cudnn*.dll", "cublas*.dll", "cufft*.dll", "curand*.dll"],
+        "lib/x64": ["cudnn*.lib", "cublas*.lib", "cufft*.lib"],
+    }
+    
+    copied_count = 0
+    for subdir, patterns in required_files.items():
+        src_dir = cuda_root / subdir
+        dest_dir = dist_dir / "cuda" / subdir
+        
+        if src_dir.exists():
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            
+            for pattern in patterns:
+                for file in src_dir.glob(pattern):
+                    try:
+                        shutil.copy2(file, dest_dir)
+                        print(f"✓ Copied: {file.name}")
+                        copied_count += 1
+                    except Exception as e:
+                        print(f"⚠ Could not copy {file.name}: {e}")
+    
+    if copied_count > 0:
+        print(f"\n✅ Successfully copied {copied_count} CUDA files for Windows")
+    else:
+        print("\n⚠ No CUDA files were copied for Windows")
+
+
+def get_gpu_files_linux() -> None:
+    """Копирует GPU файлы для Linux."""
+    print("Looking for CUDA on Linux...")
+    
+    # Стандартные пути для CUDA на Linux
+    cuda_paths = [
+        Path("/usr/local/cuda"),
+        Path("/usr/local/cuda-11.8"),
+        Path("/usr/local/cuda-12.0"),
+        Path("/usr/local/cuda-12.1"),
+        Path("/usr/local/cuda-12.2"),
+        Path("/usr/lib/cuda"),
+        Path.home() / ".cuda",
+    ]
+    
+    cuda_root = None
+    
+    # Ищем установленную CUDA
+    for cuda_path in cuda_paths:
+        if cuda_path.exists():
+            cuda_root = cuda_path
+            print(f"✓ Found CUDA at: {cuda_root}")
+            break
+    
+    if not cuda_root:
+        print("⚠ CUDA not found in standard Linux locations")
+        
+        # Проверяем установлены ли пакеты через apt
+        try:
+            result = subprocess.run(['dpkg', '-l'], capture_output=True, text=True)
+            if 'cuda' in result.stdout.lower():
+                print("✓ CUDA packages are installed via apt")
+                cuda_root = Path("/usr")
+        except:
+            pass
+        
+        if not cuda_root:
+            print("GPU acceleration may not work in the compiled application")
+            return
+    
+    # Проверяем директорию дистрибутива
+    dist_dir = Path("dist_gpu/gui.dist")
+    if not dist_dir.exists():
+        print("⚠ Distribution directory not found, creating...")
+        dist_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Копируем необходимые библиотеки
+    required_libs = [
+        "libcudnn*.so*",
+        "libcublas*.so*", 
+        "libcufft*.so*",
+        "libcurand*.so*",
+        "libcudart*.so*",
+    ]
+    
+    lib_dirs = [
+        cuda_root / "lib64",
+        cuda_root / "lib",
+        Path("/usr/lib/x86_64-linux-gnu"),
+        Path("/usr/lib/aarch64-linux-gnu"),  # Для ARM
+    ]
+    
+    copied_count = 0
+    for lib_dir in lib_dirs:
+        if lib_dir.exists():
+            dest_dir = dist_dir / "lib"
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            
+            for pattern in required_libs:
+                for file in lib_dir.glob(pattern):
+                    try:
+                        shutil.copy2(file, dest_dir)
+                        print(f"✓ Copied: {file.name}")
+                        copied_count += 1
+                        
+                        # Создаем символические ссылки
+                        if ".so." in file.name:
+                            base_name = file.name.split(".so.")[0] + ".so"
+                            symlink_path = dest_dir / base_name
+                            if not symlink_path.exists():
+                                try:
+                                    symlink_path.symlink_to(file.name)
+                                except:
+                                    pass
+                    except Exception as e:
+                        print(f"⚠ Could not copy {file.name}: {e}")
+    
+    if copied_count > 0:
+        print(f"\n✅ Successfully copied {copied_count} CUDA libraries for Linux")
+    else:
+        print("\n⚠ No CUDA libraries were copied for Linux")
+
+
 def compile_program_gpu() -> None:
     """Компилирует программу с Nuitka для GPU."""
+    sys_info = get_system_info()
+    
     print("\n" + "="*60)
-    print("Compiling with Nuitka for GPU...")
+    print(f"Compiling with Nuitka for GPU ({sys_info['system']})...")
     print("="*60)
     
     # Находим главный файл
@@ -307,15 +462,39 @@ def compile_program_gpu() -> None:
                 print(f"✓ Found alternative icon: {icon_path}")
                 break
     
+    # Определяем количество ядер процессора
+    try:
+        cpu_count = os.cpu_count() or 4
+        jobs = max(1, cpu_count // 2)
+        print(f"📊 CPU cores: {cpu_count}, using {jobs} jobs for compilation")
+    except:
+        jobs = 4  # Значение по умолчанию
+        print(f"📊 Using default job count: {jobs}")
+    
     # Собираем команду Nuitka
     cmd = [
         "nuitka",
         "--standalone",
         "--enable-plugin=tk-inter",
-        "--windows-console-mode=disable",
         "--remove-output",
+        f"--jobs={jobs}",
         "--output-dir=dist_gpu",
     ]
+    
+    # Добавляем системно-зависимые опции
+    if sys_info["is_windows"]:
+        cmd.append("--windows-console-mode=disable")
+        if sys_info["arch"] == "x64":
+            cmd.append("--mingw64")
+        else:
+            cmd.append("--mingw32")
+    elif sys_info["is_linux"]:
+        # Проверяем наличие PNG иконки для Linux
+        png_icon = Path("docs/images/vsx.png")
+        if png_icon.exists():
+            cmd.append(f"--linux-icon={png_icon}")
+        if sys_info["arch"] in ["arm", "arm64"]:
+            cmd.append("--lto=no")  # Отключаем LTO для ARM
     
     # Добавляем опции только если файлы существуют
     if models_dir.exists():
@@ -327,11 +506,26 @@ def compile_program_gpu() -> None:
     ])
     
     # Добавляем иконку если найдена
-    if icon_path.exists():
+    if sys_info["is_windows"] and icon_path.exists():
         cmd.extend([
             f"--include-data-files={icon_path}=docs/images/vsx.ico",
             f"--windows-icon-from-ico={icon_path}"
         ])
+    elif sys_info["is_linux"]:
+        # Для Linux ищем PNG иконку
+        png_icon = icon_path.with_suffix('.png')
+        if not png_icon.exists():
+            # Ищем в других местах
+            for png_file in Path.cwd().rglob("*.png"):
+                if "vsx" in png_file.name.lower() or "icon" in png_file.name.lower():
+                    png_icon = png_file
+                    print(f"✓ Found PNG icon for Linux: {png_icon}")
+                    break
+        
+        if png_icon.exists():
+            cmd.extend([
+                f"--include-data-files={png_icon}=docs/images/vsx.png"
+            ])
     
     print(f"\n📦 Nuitka command:")
     print(" ".join(cmd))
@@ -364,6 +558,8 @@ def compile_program_gpu() -> None:
 
 def rename_exe_gpu() -> None:
     """Переименовывает исполняемый файл для GPU версии."""
+    sys_info = get_system_info()
+    
     print("\nRenaming executable...")
     
     # Ищем скомпилированный файл
@@ -373,47 +569,44 @@ def rename_exe_gpu() -> None:
         print("⚠ Warning: dist_gpu directory not found")
         return
     
+    # Определяем расширение для системы
+    exe_ext = ".exe" if sys_info["is_windows"] else ""
+    
     # Ищем gui.dist или другие варианты
     possible_paths = [
-        dist_dir / "gui.dist/gui.exe",
-        dist_dir / "gui.dist/gui",
-        dist_dir / "gui.exe",
-        dist_dir / "gui",
+        dist_dir / f"gui.dist/gui{exe_ext}",
+        dist_dir / f"gui{exe_ext}",
     ]
     
     for exe_file in possible_paths:
         if exe_file.exists():
             print(f"✓ Found executable: {exe_file}")
             
-            # Для Linux
-            if platform.system() != "Windows":
-                new_name = exe_file.with_name("VSX-GPU")
-            else:
-                new_name = exe_file.with_name("VSX-GPU.exe")
-            
+            new_name = exe_file.with_name(f"VSX-GPU-{sys_info['system']}-{sys_info['arch']}{exe_ext}")
             exe_file.rename(new_name)
             print(f"✓ Renamed to: {new_name}")
             return
     
     # Если не нашли, ищем любой исполняемый файл
     for file in dist_dir.rglob("*"):
-        if file.is_file() and (file.suffix == '.exe' or file.stat().st_mode & 0o111):
-            print(f"✓ Found executable: {file}")
-            
-            if platform.system() != "Windows":
-                new_name = file.with_name("VSX-GPU")
-            else:
-                new_name = file.with_name("VSX-GPU.exe")
-            
-            file.rename(new_name)
-            print(f"✓ Renamed to: {new_name}")
-            return
+        if file.is_file():
+            # Проверяем по расширению или правам выполнения
+            if (sys_info["is_windows"] and file.suffix == '.exe') or \
+               (sys_info["is_linux"] and os.access(file, os.X_OK)):
+                print(f"✓ Found executable: {file}")
+                
+                new_name = file.with_name(f"VSX-GPU-{sys_info['system']}-{sys_info['arch']}{exe_ext}")
+                file.rename(new_name)
+                print(f"✓ Renamed to: {new_name}")
+                return
     
     print("⚠ Warning: No executable file found to rename")
 
 
 def zip_files_gpu() -> None:
     """Архивирует файлы дистрибутива для GPU."""
+    sys_info = get_system_info()
+    
     print("\n" + "="*60)
     print("Creating GPU distribution archive...")
     print("="*60)
@@ -437,8 +630,10 @@ def zip_files_gpu() -> None:
     
     print(f"Found distribution directory: {dist_dir}")
     
-    system = platform.system()
-    name = f"VSX-{system}-GPU-v1.0"
+    # Создаем имя архива с информацией о системе
+    system_name = sys_info['system'].lower()
+    arch_name = sys_info['arch'].lower()
+    name = f"VSX-GPU-{system_name}-{arch_name}-v1.0"
     
     # Удаляем старый архив если существует
     old_zip = Path(f"{name}.zip")
@@ -475,8 +670,10 @@ def delete_dist_dir_gpu() -> None:
 
 def check_cuda_availability() -> bool:
     """Проверяет доступность CUDA."""
+    sys_info = get_system_info()
+    
     print("\n" + "="*60)
-    print("Checking CUDA and GPU availability...")
+    print(f"Checking CUDA and GPU availability for {sys_info['system']}...")
     print("="*60)
     
     try:
@@ -507,7 +704,11 @@ def check_cuda_availability() -> bool:
     
     # Проверяем nvidia-smi
     try:
-        result = subprocess.run(['nvidia-smi'], capture_output=True, text=True)
+        if sys_info["is_windows"]:
+            result = subprocess.run(['nvidia-smi.exe'], capture_output=True, text=True, shell=True)
+        else:
+            result = subprocess.run(['nvidia-smi'], capture_output=True, text=True)
+        
         if result.returncode == 0:
             print("✅ nvidia-smi is available")
             print(f"GPU Info:\n{result.stdout[:500]}...")
@@ -517,7 +718,7 @@ def check_cuda_availability() -> bool:
     except FileNotFoundError:
         print("⚠ nvidia-smi not found (CUDA driver not installed?)")
     
-    print("\n⚠ GPU compilation may not work properly!")
+    print(f"\n⚠ GPU compilation may not work properly on {sys_info['system']}!")
     print("The application will be compiled with GPU support,")
     print("but may fall back to CPU if CUDA is not available on target system.")
     
@@ -527,11 +728,13 @@ def check_cuda_availability() -> bool:
 
 def main_gpu() -> None:
     """Основная функция компиляции GPU версии."""
+    sys_info = get_system_info()
+    
     start_time = perf_counter()
     
     try:
         print("\n" + "="*80)
-        print("STARTING GPU VERSION COMPILATION")
+        print(f"STARTING GPU VERSION COMPILATION FOR {sys_info['system'].upper()} ({sys_info['arch']})")
         print("="*80)
         
         # Проверяем CUDA доступность
@@ -543,7 +746,10 @@ def main_gpu() -> None:
         print(f"\n📁 Current directory: {Path.cwd()}")
         print(f"📁 Contents:")
         for item in Path.cwd().iterdir():
-            print(f"  {item.name}{'/' if item.is_dir() else ''}")
+            if item.is_dir():
+                print(f"  {item.name}/")
+            else:
+                print(f"  {item.name}")
         
         # 1. Установка зависимостей
         install_requirements_gpu()
@@ -581,8 +787,8 @@ def main_gpu() -> None:
         print(f"⏱️  Total duration: {duration}")
         print("="*80)
         
-        print("\n💡 Note: The GPU version requires CUDA and cuDNN to be installed")
-        print("on the target system for GPU acceleration to work.")
+        print(f"\n💡 Note: The GPU version for {sys_info['system']} requires CUDA and cuDNN")
+        print("to be installed on the target system for GPU acceleration to work.")
         
     except subprocess.CalledProcessError as e:
         print(f"\n❌ Command failed: {e}")
