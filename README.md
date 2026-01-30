@@ -1,3 +1,5 @@
+English | [Russian](README_ru.md) | [简体中文](readme_ch.md)
+
 # VidSubX
 
 ![python version](https://img.shields.io/badge/Python-3.12-blue)
