@@ -207,7 +207,6 @@ def compile_program_cpu() -> None:
         "--enable-plugin=tk-inter",
         "--windows-console-mode=disable",
         "--remove-output",
-        "--jobs=10",
         "--output-dir=dist_cpu",
     ]
     
