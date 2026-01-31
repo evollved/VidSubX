@@ -157,7 +157,7 @@ class SubtitleExtractorGUI:
         self.video_target_height = 500
         self.thread_running = False
         self._console_redirector()
-        self.update_checker()
+        self._update_checker()
 
     def _create_layout(self) -> None:
         """
@@ -231,6 +231,9 @@ class SubtitleExtractorGUI:
         self.file_mb["menu"] = self.file_menu
         self.file_mb.grid(column=0, row=0)
 
+        self.check_for_updates = tk.BooleanVar(value=utils.CONFIG.check_for_updates)
+        self.file_menu.add_checkbutton(label="Check for Updates", command=self._set_update_checker,
+                                       variable=self.check_for_updates)
         self.file_menu.add_command(label="Open file(s)", command=self._open_files)
         self.file_menu.add_command(label="Close", command=self._on_closing)
 
@@ -1008,9 +1011,11 @@ class SubtitleExtractorGUI:
 
         self._apply_menu_hover()  # Add or remove hover as the state changes
 
-    @staticmethod
-    def update_checker() -> None:
-        if getattr(sys, "frozen", False):
+    def _set_update_checker(self) -> None:
+        utils.CONFIG.set_config(check_for_updates=self.check_for_updates.get())
+
+    def _update_checker(self) -> None:
+        if getattr(sys, "frozen", False) and self.check_for_updates.get():
             Thread(target=utils.check_for_updates(), daemon=True).start()
 
     def clear_notifications(self) -> None:
@@ -1037,7 +1042,7 @@ class PreferencesUI(tk.Toplevel):
         super().__init__()
         self.icon_file = icon_file
         self.geometry(f"+{win_x}+{win_y}")  # Set window position.
-        self.sections_to_skip = {"Theme"}  # Sections from Config
+        self.sections_to_skip = {"Misc"}  # Sections from Config
         self._create_layout()
         self.focus()
         self.grab_set()

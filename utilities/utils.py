@@ -123,8 +123,9 @@ class Config:
             "use_gpu": (bool, True),
             "auto_optimize_perf": (bool, True),
         },
-        "Theme":{
+        "Misc":{
             "use_dark_mode": (bool, False),
+            "check_for_updates": (bool, True),
         }
     }
 
