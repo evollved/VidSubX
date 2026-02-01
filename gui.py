@@ -231,11 +231,12 @@ class SubtitleExtractorGUI:
         self.file_mb["menu"] = self.file_menu
         self.file_mb.grid(column=0, row=0)
 
+        self.file_menu.add_command(label="Open file(s)", command=self._open_files)
+        self.file_menu.add_command(label="Close", command=self._on_closing)
+        self.file_menu.add_separator()
         self.check_for_updates = tk.BooleanVar(value=utils.CONFIG.check_for_updates)
         self.file_menu.add_checkbutton(label="Check for Updates", command=self._set_update_checker,
                                        variable=self.check_for_updates)
-        self.file_menu.add_command(label="Open file(s)", command=self._open_files)
-        self.file_menu.add_command(label="Close", command=self._on_closing)
 
         # View Menu
         self.view_mb = tk.Menubutton(self.menubar_frame, text="View", **menu_style)
@@ -246,6 +247,7 @@ class SubtitleExtractorGUI:
         # View Items
         self.use_dark_mode = tk.BooleanVar(value=utils.CONFIG.use_dark_mode)
         self.view_menu.add_checkbutton(label="Dark Mode", command=self._toggle_theme, variable=self.use_dark_mode)
+        self.view_menu.add_separator()
         self.view_menu.add_command(label="Video Zoom In   (Ctrl+Plus)", command=lambda: self.resize_video("equal"))
         self.view_menu.add_command(label="Video Zoom Out  (Ctrl+Minus)", command=lambda: self.resize_video("minus"))
         self.root.bind("<Control-equal>", self.resize_video)  # equal instead of plus. It prevents need for shift key.
