@@ -356,52 +356,44 @@ class SubtitleExtractorGUI:
         # Connect text and scrollbar widgets.
         self.text_output_widget.configure(yscrollcommand=output_scroll.set)
 
+    def _set_theme_color(self, config: dict) -> None:
+        self.menubar_frame.configure(bg=config["bg"])
+        self.file_mb.configure(**config)
+        self.view_mb.configure(**config)
+        self.menu_pref_btn.configure(**config)
+        self.menu_detect_btn.configure(**config)
+        self.menu_hide_btn.configure(**config)
+        self.sep_label.configure(**config)
+        self.menu_start_btn.configure(**config)
+        self.menu_stop_btn.configure(**config)
+        self.file_menu.configure(**config)
+        self.view_menu.configure(**config)
+        self.canvas.configure(bg=config["bg"])
+        self.text_output_widget.configure(bg=config["bg"], fg=config["fg"])
+
     def _toggle_theme(self) -> None:
         """
         Set the theme of the gui.
         """
         if self.use_dark_mode.get():
             logger.debug("Dark mode turned on")
+            config = {"bg": "#1e1e1e", "fg": "white", "activebackground": "#4a4a4a"}
             set_title_bar_colour(self.root.winfo_id(), True)
-            self.menubar_frame.configure(bg="#1e1e1e")
-            menu_config = {"bg": "#1e1e1e", "fg": "white", "activebackground": "#4a4a4a"}
-            self.file_mb.configure(**menu_config)
-            self.view_mb.configure(**menu_config)
-            self.menu_pref_btn.configure(**menu_config)
-            self.menu_detect_btn.configure(**menu_config)
-            self.menu_hide_btn.configure(**menu_config)
-            self.sep_label.configure(**menu_config)
-            self.menu_start_btn.configure(**menu_config)
-            self.menu_stop_btn.configure(**menu_config)
-            self.file_menu.configure(**menu_config)
-            self.view_menu.configure(**menu_config)
-            self.canvas.configure(bg="#1e1e1e")
-            self.text_output_widget.configure(bg="#1e1e1e", fg="white")
-
+            self._set_theme_color(config)
             self.style.theme_use("clam")
-            self.style.configure("TFrame", background="#1e1e1e")
-            self.style.configure("TLabel", background="#1e1e1e", foreground="white")
+            self.style.configure("TFrame", background=config["bg"])
+            self.style.configure("TLabel", background=config["bg"], foreground="white")
             self.style.configure("Horizontal.TScale", troughcolor="#2b2b2b")
-            self.style.configure("TEntry", fieldbackground="#1e1e1e", foreground="white", insertcolor="white")
-            self.style.configure("TSpinbox", fieldbackground="#1e1e1e", foreground="white", insertcolor="white")
+            self.style.configure("TEntry", fieldbackground=config["bg"], foreground="white", insertcolor="white")
+            self.style.configure("TSpinbox", fieldbackground=config["bg"], foreground="white", insertcolor="white")
         else:
             logger.debug("Dark mode turned off")
+            config = {"bg": "SystemMenu", "fg": "black", "activebackground": "SystemHighlight"}
+            if platform.system() != "Windows":
+                config["bg"], config["activebackground"] = "#d9d9d9", "#4a6984"
             set_title_bar_colour(self.root.winfo_id(), False)
             self.style.theme_use(self.default_theme)
-            self.menubar_frame.configure(bg="SystemMenu")
-            menu_config = {"bg": "SystemMenu", "fg": "black", "activebackground": "SystemHighlight"}
-            self.file_mb.configure(**menu_config)
-            self.view_mb.configure(**menu_config)
-            self.menu_pref_btn.configure(**menu_config)
-            self.menu_detect_btn.configure(**menu_config)
-            self.menu_hide_btn.configure(**menu_config)
-            self.sep_label.configure(**menu_config)
-            self.menu_start_btn.configure(**menu_config)
-            self.menu_stop_btn.configure(**menu_config)
-            self.file_menu.configure(**menu_config)
-            self.view_menu.configure(**menu_config)
-            self.canvas.configure(bg="SystemButtonFace")
-            self.text_output_widget.configure(bg="white", fg="black")
+            self._set_theme_color(config)
         self._apply_menu_hover(True)
         utils.CONFIG.set_config(use_dark_mode=self.use_dark_mode.get())
 
