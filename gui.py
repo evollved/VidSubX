@@ -223,7 +223,7 @@ class SubtitleExtractorGUI:
         self.menubar_frame = tk.Frame(self.root)
         self.menubar_frame.grid(column=0, row=0, sticky="E, W")
         # Common styles
-        menu_style = {"padx": 8, "bd": 0}
+        menu_style = {"padx": 8, "bd": 0, "highlightthickness": 0}
 
         # File Menu
         self.file_mb = tk.Menubutton(self.menubar_frame, text="File", **menu_style)
