@@ -85,9 +85,11 @@ def compile_program(gpu_enabled: bool) -> None:
     ]
     if gpu_enabled:
         cmd.append("--collect-binaries=nvidia")
+    if platform.system() == "Linux":
+        cmd.append("--hidden-import=PIL._tkinter_finder")
     cmd.append("gui.py")
     print(f"\nCompiling program with PyInstaller... \nCommand: {' '.join(cmd)}")
-    run_command(cmd, True)
+    run_command(cmd)
 
 
 def create_installer(gpu_enabled: bool) -> None:
@@ -95,22 +97,29 @@ def create_installer(gpu_enabled: bool) -> None:
 
     version = utils.CONFIG.version_file.read_text()
     name = f"VSX-{platform.system()}-{'GPU' if gpu_enabled else 'CPU'}-v{version}"
-    inno_exe = Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe")
-    if not inno_exe.exists():
-        print(f"Inno Setup executable not found: {inno_exe} Exiting..."), exit(1)
-    cmd = [
-        str(inno_exe),
-        f"/DMyAppVersion={version}",
-        f"/DOutputBaseFilename={name}",
-        "installer/inno script.iss",
-    ]
-    print(f"\nCreating {platform.system()} installer for program... \nCommand: {' '.join(cmd)}")
-    run_command(cmd)
+    if platform.system() == "Windows":
+        inno_exe = Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe")
+        if not inno_exe.exists():
+            print(f"Inno Setup executable not found: {inno_exe} Exiting..."), exit(1)
+        cmd = [
+            str(inno_exe),
+            f"/DMyAppVersion={version}",
+            f"/DOutputBaseFilename={name}",
+            "installer/inno script.iss",
+        ]
+        print(f"\nCreating {platform.system()} installer for program... \nCommand: {' '.join(cmd)}")
+        run_command(cmd)
+    else:
+        print(f"\nZipping distribution files...")
+        shutil.make_archive(name, "zip", "dist/VSX")
 
 
 def remove_site_pkg_tempdirs() -> None:
     print("\nChecking for site package temporary directories...")
     temp_dir = Path(f"{site.getsitepackages()[1]}")
+    if not temp_dir.exists():
+        print(f"Site package temporary directory not found: {temp_dir}")
+        return
     for folder in temp_dir.iterdir():
         if folder.name.startswith("~"):
             print(f"Deleting temp folder: {folder}")

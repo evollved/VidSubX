@@ -84,8 +84,8 @@ class CustomMessageBox(tk.Toplevel):
 
         super().__init__()
         CustomMessageBox.instance = self
-
-        self.iconbitmap(icon_file)
+        if platform.system() == "Windows":
+            self.iconbitmap(icon_file)
         self.title(win_title)
         self.geometry(f"+{win_x}+{win_y}")  # Set window position.
         self.focus()

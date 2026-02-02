@@ -1,7 +1,7 @@
 # VidSubX
 
 ![python version](https://img.shields.io/badge/Python-3.12-blue)
-![support os](https://img.shields.io/badge/OS-Windows-green.svg)
+![support os](https://img.shields.io/badge/OS-Windows%20%7C%20Linux-green.svg)
 
 A free program that extracts hard coded subtitles from a video and generates an external subtitle file.
 
@@ -62,8 +62,20 @@ pip install -r requirements-cpu.txt
 
 **_Note:_** `onnxruntime` and `onnxruntime-gpu` should not both be installed at the same time.
 
+For Linux
+
+```commandline
+sudo apt install python3-tk
+```
+
 Run `gui.py` to use Graphical interface and `main.py` to use Terminal.
 
 ### Compile Instructions
+
+For Linux
+
+```commandline
+sudo apt install binutils
+```
 
 Run `compiler.py` to build compiled program
