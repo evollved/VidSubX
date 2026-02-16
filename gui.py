@@ -194,7 +194,7 @@ class SubtitleExtractorGUI:
         # Display window after layout is ready
         self._toggle_theme()
         self.root.update_idletasks()
-        self.root.deiconify()
+        self.root.after(10, self.root.deiconify)  # type: ignore
         self.root.minsize(self.root.winfo_width(), self.root.winfo_height())  # Custom menubar will always be visible
 
     def _apply_menu_hover(self, force_update: bool = False) -> None:
