@@ -131,8 +131,8 @@ def check_for_gpu() -> bool:
         output = subprocess.check_output("nvidia-smi")
         print(f"NVIDIA GPU detected\n{output.decode()}")
         gpu_supported = True
-    except subprocess.CalledProcessError:
-        print("No NVIDIA GPU detected or nvidia-smi not installed")
+    except Exception as error:
+        print(f"No NVIDIA GPU detected or nvidia-smi not installed. Error: {error}")
     return gpu_supported
 
 
