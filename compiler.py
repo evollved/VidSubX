@@ -97,10 +97,8 @@ def create_installer(gpu_enabled: bool) -> None:
 
     version = utils.CONFIG.version_file.read_text()
     name = f"VSX-{platform.system()}-{'GPU' if gpu_enabled else 'CPU'}-v{version}"
-    if platform.system() == "Windows":
-        inno_exe = Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe")
-        if not inno_exe.exists():
-            print(f"Inno Setup executable not found: {inno_exe} Exiting..."), exit(1)
+    inno_exe = Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe")
+    if platform.system() == "Windows" and inno_exe.exists():
         cmd = [
             str(inno_exe),
             f"/DMyAppVersion={version}",
@@ -126,10 +124,23 @@ def remove_site_pkg_tempdirs() -> None:
             shutil.rmtree(folder)
 
 
+def check_for_gpu() -> bool:
+    print("\nChecking for GPU support...")
+    gpu_supported = False
+    try:
+        output = subprocess.check_output("nvidia-smi")
+        print(f"NVIDIA GPU detected\n{output.decode()}")
+        gpu_supported = True
+    except subprocess.CalledProcessError:
+        print("No NVIDIA GPU detected or nvidia-smi not installed")
+    return gpu_supported
+
+
 def build_dist(gpu_enabled: bool) -> None:
     start_time = perf_counter()
     remove_site_pkg_tempdirs()
     if gpu_enabled:
+        if not check_for_gpu(): return
         uninstall_requirements("cpu")
         install_requirements("gpu")
     else:
