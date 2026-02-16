@@ -33,6 +33,13 @@ class Process:
         logger.debug(f"interrupt_process set to: {cls.interrupt_process}")
 
 
+def cancel_futures(futures) -> None:
+    logger.info("Cancelling all pending processes...")
+    for future in futures:
+        cancelled = future.cancel()
+        logger.debug(f"Attempted to cancel {future}. Cancelled: {cancelled}")
+
+
 def check_for_updates() -> None:
     """
     Checks GitHub for a new release.
@@ -123,7 +130,7 @@ class Config:
             "use_gpu": (bool, True),
             "auto_optimize_perf": (bool, True),
         },
-        "Misc":{
+        "Misc": {
             "use_dark_mode": (bool, False),
             "check_for_updates": (bool, True),
         }

@@ -374,8 +374,7 @@ class SubtitleExtractor:
         """
         Use processed text files in dictionary to create subtitle file.
         """
-        # Cancel if process has been cancelled by gui.
-        if utils.Process.interrupt_process:
+        if utils.Process.interrupt_process:  # Cancel if process has been canceled by gui.
             logger.warning("Subtitle generation process interrupted!")
             return []
 
@@ -440,6 +439,7 @@ class SubtitleExtractor:
             frames_to_text(self.frame_output, self.text_output)
         except Exception as error:
             logger.exception(f"An error occurred during frame & text extraction! \nError: {error}")
+        if utils.Process.interrupt_process: return
         assert len(list(self.frame_output.iterdir())) == len(list(self.text_output.iterdir()))
 
     def run_extraction(self, video_path: str, sub_area: tuple = None, start_frame: int = None,

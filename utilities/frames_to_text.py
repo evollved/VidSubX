@@ -82,7 +82,7 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     no_processes = utils.CONFIG.gpu_ocr_processes if device == "GPU" else utils.CONFIG.cpu_ocr_processes
     line_sep = "\n" if utils.CONFIG.line_break else " "
 
-    if utils.Process.interrupt_process:  # Cancel if process has been cancelled by gui.
+    if utils.Process.interrupt_process:  # Cancel if process has been canceled by gui.
         logger.warning(f"{prefix} process interrupted!")
         return
 
@@ -91,13 +91,17 @@ def frames_to_text(frame_output: Path, text_output: Path) -> None:
     files = list(frame_output.iterdir())
     file_batches = [files[i:i + batch_size] for i in range(0, len(files), batch_size)]
     no_batches = len(file_batches)
-    logger.info(f"Starting Multiprocess {prefix} from frames on {device}, Batches: {no_batches}.")
+    logger.info(f"Starting Multiprocess {prefix} from frames on {device}, Batches: {no_batches:,}.")
     optimizer = PerformanceOptimiser() if utils.CONFIG.auto_optimize_perf else NullPerformanceOptimiser()
     with ThreadPoolExecutor(no_processes) as executor:
         futures = [executor.submit(extract_text, ocr_engine, text_output, files, line_sep) for files in file_batches]
         for i, f in enumerate(as_completed(futures)):  # as each  process completes
             f.result()  # Prevents silent bugs. Exceptions raised will be displayed.
             utils.print_progress(i, no_batches - 1, prefix)
+            if utils.Process.interrupt_process:
+                logger.warning(f"\n{prefix} Executor process interrupted!")
+                utils.cancel_futures(futures)
+                return
             optimizer.record_perf()
     optimizer.optimise_performance()
     logger.info(f"{prefix} done!")
