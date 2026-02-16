@@ -2,7 +2,7 @@ import logging
 import os
 import platform
 import sys
-from configparser import ConfigParser
+from configparser import ConfigParser, ParsingError
 from functools import cache
 from pathlib import Path
 
@@ -144,11 +144,18 @@ class Config:
 
         self.config_file = get_config_dir() / "config.ini"
         self.config = ConfigParser()
-        if not self.config_file.exists():
-            self.create_default_config_file()
+        self.config_loader()
 
-        self.config.read(self.config_file)
-        self.load_config()
+    def config_loader(self) -> None:
+        try:
+            if not self.config_file.exists():
+                self.create_default_config_file()
+            self.config.read(self.config_file)
+            self.load_config()
+        except (KeyError, ValueError, ParsingError):
+            logger.error("Unable to load config file. Resetting config...")
+            self.config_file.unlink()
+            self.config_loader()
 
     def create_default_config_file(self) -> None:
         for section, data in self.config_schema.items():
