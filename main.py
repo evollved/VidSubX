@@ -1,6 +1,5 @@
 import logging
 import shutil
-import tempfile
 from datetime import timedelta
 from difflib import SequenceMatcher
 from itertools import pairwise
@@ -8,10 +7,13 @@ from pathlib import Path
 
 import cv2 as cv
 
-import utilities.utils as utils
-from utilities.frames_to_text import extract_bboxes, frames_to_text, setup_ocr
-from utilities.logger_setup import setup_logging
-from utilities.video_to_frames import extract_frames, video_to_frames
+from extraction.frames_to_text import frames_to_text, extract_bboxes, setup_ocr
+from extraction.video_to_frames import video_to_frames, extract_frames
+from infra.app_paths import AppPaths
+from infra.logger_setup import setup_logging
+from shared.config import CONFIG
+from shared.process import Process
+from shared.utils import video_details, timecode, default_sub_area, frame_no_to_duration
 
 logger = logging.getLogger(__name__)
 
@@ -26,20 +28,20 @@ class SubtitleDetector:
         """
         self.video_file = video_file
         self.use_search_area = use_search_area
-        self.sub_ex = SubtitleExtractor()
-        self.fps, self.frame_total, self.frame_width, self.frame_height = self.sub_ex.video_details(self.video_file)
-        self.frame_output = self.sub_ex.vd_output_dir / "sub detect frames"  # Extracted video frame storage directory.
+        self.fps, self.frame_total, self.frame_width, self.frame_height = video_details(self.video_file)
+        self.output_dir = AppPaths.output()
+        self.frame_output = self.output_dir / "sub detect frames"  # Extracted video frame storage directory.
 
     def _get_key_frames(self) -> None:
         """
         Extract frames from default subtitle area of video that should contain subtitles.
         """
         # Decimal used to signify the relative position to choose start point to search for frames.
-        split_start = utils.CONFIG.split_start
+        split_start = CONFIG.split_start
         # Decimal used to signify the relative position to choose end point to search for frames.
-        split_stop = utils.CONFIG.split_stop
+        split_stop = CONFIG.split_stop
         # How many frames to look through after splits.
-        no_of_frames = utils.CONFIG.no_of_frames
+        no_of_frames = CONFIG.no_of_frames
 
         relative_start, relative_stop = int(self.frame_total * split_start), int(self.frame_total * split_stop)
         logger.debug(f"Relative start frame = {relative_start}, Relative stop frame = {relative_stop}")
@@ -47,8 +49,8 @@ class SubtitleDetector:
         frame_batches = [[i, i + no_of_frames] for i in range(relative_start, relative_stop)]
         no_batches = len(frame_batches)
         logger.debug(f"{self.frame_total=}, {no_batches=}")
-        start_duration = self.sub_ex.frame_no_to_duration(relative_start, self.fps)
-        stop_duration = self.sub_ex.frame_no_to_duration(relative_stop, self.fps)
+        start_duration = frame_no_to_duration(relative_start, self.fps)
+        stop_duration = frame_no_to_duration(relative_stop, self.fps)
         logger.info(f"Split Start = {start_duration}, Split Stop = {stop_duration}")
         if no_batches > 3:
             middle_batch = int(no_batches / 2)
@@ -60,7 +62,7 @@ class SubtitleDetector:
         # Part of the video to look for subtitles.
         if self.use_search_area:
             logger.info("Default sub area is being used as search area.")
-            search_area = self.sub_ex.default_sub_area(self.frame_width, self.frame_height)
+            search_area = default_sub_area(self.frame_width, self.frame_height)
         else:
             search_area = None
         for frames in frame_batches:
@@ -73,7 +75,7 @@ class SubtitleDetector:
         Detected texts default x boundary will be used if larger than the relative padding.
         The y paddings are absolute to the height of the video. All resolutions will have the same y paddings.
         """
-        x_padding, y_padding = utils.CONFIG.sub_area_x_rel_padding, utils.CONFIG.sub_area_y_abs_padding
+        x_padding, y_padding = CONFIG.sub_area_x_rel_padding, CONFIG.sub_area_y_abs_padding
         relative_x_padding = int(self.frame_width * x_padding)
         rel_top_left_x, rel_bottom_right_x = self.frame_width - relative_x_padding, relative_x_padding
 
@@ -89,7 +91,7 @@ class SubtitleDetector:
         Reposition the sub area that was changed when using the default subtitle area to detect texts bbox.
         """
         if self.use_search_area:
-            y = int(self.frame_height * utils.CONFIG.subarea_height_scaler)
+            y = int(self.frame_height * CONFIG.subarea_height_scaler)
             top_left = top_left[0], top_left[1] + y
             bottom_right = bottom_right[0], bottom_right[1] + y
             return top_left, bottom_right
@@ -118,6 +120,11 @@ class SubtitleDetector:
                 new_bottom_right_y = bottom_right_y
         return (new_top_left_x, new_top_left_y), (new_bottom_right_x, new_bottom_right_y)
 
+    def empty_cache(self) -> None:
+        if self.output_dir.exists():
+            logger.debug("Emptying cache...")
+            shutil.rmtree(self.output_dir)
+
     def get_sub_area(self) -> tuple | None:
         """
         A more accurate area containing the subtitle in the video is returned.
@@ -125,10 +132,9 @@ class SubtitleDetector:
         video_path = Path(self.video_file)
         if not video_path.exists() or not video_path.is_file():
             logger.error(f"Video file: {video_path.name} ...could not be found!\n")
-            return
-        self.sub_ex.empty_cache()  # Empty cache at the beginning of program run before it recreates itself.
-        if not self.frame_output.exists():
-            self.frame_output.mkdir(parents=True)
+            return None
+        self.empty_cache()  # Empty cache at the beginning of program run before it recreates itself.
+        self.output_dir.mkdir(), self.frame_output.mkdir()
 
         logger.info(f"Video name: {video_path.name}")
         self._get_key_frames()
@@ -141,7 +147,7 @@ class SubtitleDetector:
             new_sub_area = top_left[0], top_left[1], bottom_right[0], bottom_right[1]
 
         logger.info(f"New sub area = {new_sub_area}\n")
-        self.sub_ex.empty_cache()
+        self.empty_cache()
         return new_sub_area
 
 
@@ -152,32 +158,9 @@ class SubtitleExtractor:
         """
         self.video_path, self.subtitle_texts = None, {}
         self.divider = "--"  # Characters for separating time durations(ms) in key name.
-        self.vd_output_dir = Path(tempfile.gettempdir()) / utils.CONFIG.program_name  # Cache directory.
+        self.output_dir = AppPaths.output()  # Cache directory.
         # Extracted video frame storage directory. Extracted text file storage directory.
-        self.frame_output, self.text_output = self.vd_output_dir / "frames", self.vd_output_dir / "extracted texts"
-
-    @staticmethod
-    def video_details(video_path: str) -> tuple:
-        """
-        Get the video details of the video in path.
-        :return: video details
-        """
-        capture = cv.VideoCapture(video_path)
-        fps = capture.get(cv.CAP_PROP_FPS)
-        frame_total = int(capture.get(cv.CAP_PROP_FRAME_COUNT))
-        frame_width = int(capture.get(cv.CAP_PROP_FRAME_WIDTH))
-        frame_height = int(capture.get(cv.CAP_PROP_FRAME_HEIGHT))
-        capture.release()
-        return fps, frame_total, frame_width, frame_height
-
-    @staticmethod
-    def default_sub_area(frame_width: int, frame_height: int) -> tuple:
-        """
-        Returns a default subtitle area that can be used if no subtitle is given.
-        :return: Position of subtitle relative to the resolution of the video. x2 = width and y2 = height
-        """
-        x1, y1, x2, y2 = 0, int(frame_height * utils.CONFIG.subarea_height_scaler), frame_width, frame_height
-        return x1, y1, x2, y2
+        self.frame_output, self.text_output = self.output_dir / "frames", self.output_dir / "extracted texts"
 
     @staticmethod
     def clamp_sub_area(sub_area: tuple, frame_width: int, frame_height: int) -> tuple:
@@ -192,21 +175,13 @@ class SubtitleExtractor:
         y2 = max(0, min(y2, frame_height))
         return x1, y1, x2, y2
 
-    def frame_no_to_duration(self, frame_no: float | int, fps: float | int) -> str:
-        """
-        Covert frame number to milliseconds then to time code duration.
-        """
-        frame_no_to_ms = (frame_no / fps) * 1000
-        duration = self.timecode(frame_no_to_ms).replace(",", ":")
-        return duration
-
     def empty_cache(self) -> None:
         """
         Delete all cache files and dictionary content produced during subtitle extraction.
         """
-        if self.vd_output_dir.exists():
+        if self.output_dir.exists():
             logger.debug("Emptying cache...")
-            shutil.rmtree(self.vd_output_dir)
+            shutil.rmtree(self.output_dir)
         if self.subtitle_texts:
             logger.debug("Clearing subtitle texts cache...")
             self.subtitle_texts = {}
@@ -265,7 +240,7 @@ class SubtitleExtractor:
         The text that has the longest duration becomes the text for all similar texts.
         """
         logger.debug("Merging adjacent similar texts")
-        similarity_threshold = utils.CONFIG.text_similarity_threshold  # Cut off point to determine similarity.
+        similarity_threshold = CONFIG.text_similarity_threshold  # Cut off point to determine similarity.
         new_subtitle_dict, no_of_keys = {}, len(self.subtitle_texts)
         starting_key = starting_key_txt = starting_key_dur = None
         for index, (key1, key2) in enumerate(pairwise(self.subtitle_texts.items()), start=2):
@@ -313,9 +288,9 @@ class SubtitleExtractor:
         """
         logger.debug("Removing short duration consecutive subs")
         # Minimum allowed consecutive duration in milliseconds.
-        min_consecutive_sub_dur = utils.CONFIG.min_consecutive_sub_dur_ms
+        min_consecutive_sub_dur = CONFIG.min_consecutive_sub_dur_ms
         # Maximum allowed number of short durations in a row.
-        max_consecutive_short_durs = utils.CONFIG.max_consecutive_short_durs
+        max_consecutive_short_durs = CONFIG.max_consecutive_short_durs
 
         keys_for_deletion, short_dur_keys, no_of_keys = set(), set(), len(self.subtitle_texts)
         for index, (dur_1, dur_2) in enumerate(pairwise(self.subtitle_texts), start=2):
@@ -339,7 +314,7 @@ class SubtitleExtractor:
         """
         logger.debug("Removing short duration subs")
         # Minimum allowed time in milliseconds.
-        min_sub_duration = utils.CONFIG.min_sub_duration_ms
+        min_sub_duration = CONFIG.min_sub_duration_ms
         short_dur_keys = set()
         for ms_duration in self.subtitle_texts:
             duration = self.name_to_duration(ms_duration)
@@ -357,24 +332,11 @@ class SubtitleExtractor:
         self.remove_short_duration_consecutive_subs()
         self.remove_short_duration_subs()
 
-    @staticmethod
-    def timecode(frame_no_in_milliseconds: float) -> str:
-        """
-        Use to frame no in milliseconds to create timecode.
-        """
-        # Calculate the components of the timecode.
-        total_seconds = frame_no_in_milliseconds // 1000  # Convert milliseconds to total seconds.
-        milliseconds_remainder = frame_no_in_milliseconds % 1000  # Calculate the remaining milliseconds.
-        seconds = total_seconds % 60  # Calculate the seconds component (remainder after removing minutes).
-        minutes = (total_seconds // 60) % 60
-        hours = total_seconds // 3600  # Calculate the number of hours in the total seconds.
-        return "%02d:%02d:%02d,%03d" % (hours, minutes, seconds, milliseconds_remainder)
-
     def generate_subtitle(self) -> list:
         """
         Use processed text files in dictionary to create subtitle file.
         """
-        if utils.Process.interrupt_process:  # Cancel if process has been canceled by gui.
+        if Process.interrupt_process:  # Cancel if process has been canceled by gui.
             logger.warning("Subtitle generation process interrupted!")
             return []
 
@@ -382,7 +344,7 @@ class SubtitleExtractor:
         subtitles = []
         for line_code, (ms_dur, txt) in enumerate(self.subtitle_texts.items(), start=1):
             key_name = ms_dur.split(self.divider)
-            frame_start, frame_end = self.timecode(float(key_name[0])), self.timecode(float(key_name[1]))
+            frame_start, frame_end = timecode(float(key_name[0])), timecode(float(key_name[1]))
             subtitle_line = f"{line_code}\n{frame_start} --> {frame_end}\n{txt}\n\n"
             subtitles.append(subtitle_line)
         logger.info("Subtitle generated!")
@@ -423,7 +385,7 @@ class SubtitleExtractor:
         """
         if not lines:
             logger.info(f"No lines in subtitles generated. Name: {self.video_path.name}")
-            return
+            return None
         save_path = self.gen_sub_file_name()
         with open(save_path, 'w', encoding="utf-8") as new_sub:
             new_sub.writelines(lines)
@@ -439,7 +401,7 @@ class SubtitleExtractor:
             frames_to_text(self.frame_output, self.text_output)
         except Exception as error:
             logger.exception(f"An error occurred during frame & text extraction! \nError: {error}")
-        if utils.Process.interrupt_process: return
+        if Process.interrupt_process: return
         assert len(list(self.frame_output.iterdir())) == len(list(self.text_output.iterdir()))
 
     def run_extraction(self, video_path: str, sub_area: tuple = None, start_frame: int = None,
@@ -450,14 +412,13 @@ class SubtitleExtractor:
         self.video_path = Path(video_path)
         if not self.video_path.exists() or not self.video_path.is_file():
             logger.error(f"Video file: {self.video_path.name} ...could not be found!\n")
-            return
+            return None
         self.empty_cache()  # Empty cache at the beginning of program run before it recreates itself.
         # If the directories do not exist, create the directories.
-        self.frame_output.mkdir(parents=True)
-        self.text_output.mkdir(parents=True)
+        self.output_dir.mkdir(), self.frame_output.mkdir(), self.text_output.mkdir()
 
-        fps, frame_total, frame_w, frame_h = self.video_details(video_path)
-        sub_area = sub_area or self.default_sub_area(frame_w, frame_h)
+        fps, frame_total, frame_w, frame_h = video_details(video_path)
+        sub_area = sub_area or default_sub_area(frame_w, frame_h)
         sub_area = self.clamp_sub_area(sub_area, frame_w, frame_h)
 
         logger.info(f"File Path: {self.video_path}\n"

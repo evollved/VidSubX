@@ -15,10 +15,13 @@ import cv2 as cv
 import numpy as np
 from PIL import Image, ImageTk
 
-import utilities.utils as utils
+from infra.app_paths import AppPaths
+from infra.logger_setup import setup_logging
+from infra.win_notify import Notification, Sound
 from main import SubtitleDetector, SubtitleExtractor, setup_ocr
-from utilities.logger_setup import setup_logging
-from utilities.win_notify import Notification, Sound
+from shared.config import CONFIG
+from shared.process import Process
+from shared.utils import video_details, default_sub_area, frame_no_to_duration, check_for_updates
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +105,7 @@ class CustomMessageBox(tk.Toplevel):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        if utils.CONFIG.use_dark_mode:
+        if CONFIG.use_dark_mode:
             set_title_bar_colour(self.winfo_id(), True)
             self.text_box.configure(bg="#1e1e1e", fg="white")
         else:
@@ -151,7 +154,6 @@ class SubtitleExtractorGUI:
         self.root = root
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
         self._create_layout()
-        self.sub_ex = SubtitleExtractor()
         self.video_queue = {}
         self.current_video = self.video_capture = self.subtitle_rect = self.non_subarea_rect = None
         self.video_target_height = 500
@@ -164,7 +166,7 @@ class SubtitleExtractorGUI:
         Use ttk to create frames for gui.
         """
         # Window title and icon.
-        self.window_title = utils.CONFIG.program_name
+        self.window_title = AppPaths.program_name
         self.icon_file = Path(__file__).parent / "installer/vsx.ico"
         self.root.withdraw()  # Hide root window while layout is being drawn
         self.root.title(self.window_title)
@@ -189,7 +191,7 @@ class SubtitleExtractorGUI:
         self._work_frame()
         self._output_frame()
 
-        self.status_label = ttk.Label(self.main_frame, text=f"v{utils.Config.version_file.read_text()}")
+        self.status_label = ttk.Label(self.main_frame, text=f"v{AppPaths.version_file.read_text()}")
         self.status_label.grid(column=0, row=3, padx=18, sticky="E")
         # Display window after layout is ready
         self._toggle_theme()
@@ -234,7 +236,7 @@ class SubtitleExtractorGUI:
         self.file_menu.add_command(label="Open file(s)", command=self._open_files)
         self.file_menu.add_command(label="Close", command=self._on_closing)
         self.file_menu.add_separator()
-        self.check_for_updates = tk.BooleanVar(value=utils.CONFIG.check_for_updates)
+        self.check_for_updates = tk.BooleanVar(value=CONFIG.check_for_updates)
         self.file_menu.add_checkbutton(label="Check for Updates", command=self._set_update_checker,
                                        variable=self.check_for_updates)
 
@@ -245,7 +247,7 @@ class SubtitleExtractorGUI:
         self.view_mb.grid(column=1, row=0)
 
         # View Items
-        self.use_dark_mode = tk.BooleanVar(value=utils.CONFIG.use_dark_mode)
+        self.use_dark_mode = tk.BooleanVar(value=CONFIG.use_dark_mode)
         self.view_menu.add_checkbutton(label="Dark Mode", command=self._toggle_theme, variable=self.use_dark_mode)
         self.view_menu.add_separator()
         self.view_menu.add_command(label="Video Zoom In   (Ctrl+Plus)", command=lambda: self.resize_video("equal"))
@@ -395,7 +397,7 @@ class SubtitleExtractorGUI:
             self.style.theme_use(self.default_theme)
             self._set_theme_color(config)
         self._apply_menu_hover(True)
-        utils.CONFIG.set_config(use_dark_mode=self.use_dark_mode.get())
+        CONFIG.set_config(use_dark_mode=self.use_dark_mode.get())
 
     def resize_video(self, args: tk.Event | str) -> None:
         """
@@ -533,7 +535,7 @@ class SubtitleExtractorGUI:
         """
         The area of the current video that usually doesn't have subtitles.
         """
-        bottom_right_height = int(self.current_frame_height * utils.CONFIG.subarea_height_scaler)
+        bottom_right_height = int(self.current_frame_height * CONFIG.subarea_height_scaler)
         x1, y1, x2, y2 = 0, 0, self.current_frame_width, bottom_right_height
         return x1, y1, x2, y2
 
@@ -607,7 +609,7 @@ class SubtitleExtractorGUI:
         """
         scale_value = float(scale_value)
         # Update timecode label as slider is moved.
-        current_duration = self.sub_ex.frame_no_to_duration(scale_value, self.current_fps)
+        current_duration = frame_no_to_duration(scale_value, self.current_fps)
         self.current_scale_value.configure(text=current_duration)
         self._display_video_frame(scale_value)
         self._elevate_non_subarea()
@@ -622,8 +624,8 @@ class SubtitleExtractorGUI:
         # Set the max size of the frame slider.
         self.video_scale.configure(state="normal", from_=0.0, to=self.current_frame_total, value=frame_no)
         # Set the durations labels.
-        total_time_duration = self.sub_ex.frame_no_to_duration(self.current_frame_total, self.current_fps)
-        scale_value = "00:00:00:000" if not frame_no else self.sub_ex.frame_no_to_duration(frame_no, self.current_fps)
+        total_time_duration = frame_no_to_duration(self.current_frame_total, self.current_fps)
+        scale_value = "00:00:00:000" if not frame_no else frame_no_to_duration(frame_no, self.current_fps)
         self.current_scale_value.configure(text=scale_value)
         self.total_scale_value.configure(text=f"/ {total_time_duration}")
         self.bind_keys_to_scale()
@@ -660,8 +662,8 @@ class SubtitleExtractorGUI:
         """
         start_frame = self.video_queue[f"{self.current_video}"][1]
         stop_frame = self.video_queue[f"{self.current_video}"][2]
-        start_dur = self.sub_ex.frame_no_to_duration(start_frame, self.current_fps) if start_frame else start_frame
-        stop_dur = self.sub_ex.frame_no_to_duration(stop_frame, self.current_fps) if stop_frame else stop_frame
+        start_dur = frame_no_to_duration(start_frame, self.current_fps) if start_frame else start_frame
+        stop_dur = frame_no_to_duration(stop_frame, self.current_fps) if stop_frame else stop_frame
         if start_dur and stop_dur:
             self.status_label.configure(text=f"Start Frame: {start_dur}, Stop Frame: {stop_dur}")
         elif start_dur:
@@ -751,7 +753,7 @@ class SubtitleExtractorGUI:
             return
         self.current_sub_area = list(self.video_queue.values())[video_index][0]
         self.current_fps, self.current_frame_total, self.current_frame_width, self.current_frame_height \
-            = self.sub_ex.video_details(self.current_video)
+            = video_details(self.current_video)
         self.video_capture = cv.VideoCapture(self.current_video)
         self._set_canvas()
         self._set_status_label()
@@ -771,14 +773,14 @@ class SubtitleExtractorGUI:
         logger.info("Opening video(s)...")
         self.thread_running = True
         for filename in filenames:
-            if utils.Process.interrupt_process:
+            if Process.interrupt_process:
                 logger.debug("Video opening process interrupted\n")
                 self.thread_running = False
                 self._on_closing()
                 return
             logger.info(f"Opened file: {Path(filename).name}")
-            _, _, frame_width, frame_height = self.sub_ex.video_details(filename)
-            default_subarea = self.sub_ex.default_sub_area(frame_width, frame_height)
+            _, _, frame_width, frame_height = video_details(filename)
+            default_subarea = default_sub_area(frame_width, frame_height)
             self.video_queue[filename] = [default_subarea, None, None]
         self.thread_running = False
         logger.info("All video(s) opened!\n")
@@ -801,7 +803,7 @@ class SubtitleExtractorGUI:
             self.video_queue = {}  # Empty the video queue before adding the new videos.
             self.clear_output()
             self.progress_bar.configure(value=0)
-            utils.Process.start_process()
+            Process.start_process()
             self._set_gui_state("disabled", "opening")
             Thread(target=self._set_opened_videos, args=(filenames,), daemon=True).start()
 
@@ -862,9 +864,9 @@ class SubtitleExtractorGUI:
                 icon=str(Path(self.icon_file).absolute()),
                 duration="long"
             )
-            sound = Sound.get_sound_value(utils.CONFIG.win_notify_sound)
+            sound = Sound.get_sound_value(CONFIG.win_notify_sound)
             toast.clear()
-            toast.set_audio(sound, loop=utils.CONFIG.win_notify_loop_sound)
+            toast.set_audio(sound, loop=CONFIG.win_notify_loop_sound)
             toast.show()
 
     def _detect_subtitles(self) -> None:
@@ -872,13 +874,13 @@ class SubtitleExtractorGUI:
         Detect sub area of videos in the queue and set as new sub area.
         """
         logger.info("Detecting subtitle area in video(s)...")
-        use_search_area = utils.CONFIG.use_search_area
+        use_search_area = CONFIG.use_search_area
         self.thread_running = True
         try:
             setup_ocr()
             start_time = perf_counter()
             for video in self.video_queue.keys():
-                if utils.Process.interrupt_process:
+                if Process.interrupt_process:
                     logger.warning("Process interrupted\n")
                     self.thread_running = False
                     self._stop_sub_detection_process()
@@ -902,7 +904,7 @@ class SubtitleExtractorGUI:
         Stop sub detection from running.
         """
         logger.debug("Stop detection button clicked")
-        utils.Process.stop_process()
+        Process.stop_process()
         if not self.thread_running:
             self._set_gui_state("normal", "detection")
             self.menu_detect_btn.configure(text="Detect Subtitles", command=self._run_sub_detection)
@@ -911,7 +913,7 @@ class SubtitleExtractorGUI:
         """
         Create a thread to run subtitle detection.
         """
-        utils.Process.start_process()
+        Process.start_process()
         self._set_gui_state("disabled", "detection")
         self.menu_detect_btn.configure(text="Stop Sub Detection", command=self._stop_sub_detection_process)
         Thread(target=self._detect_subtitles, daemon=True).start()
@@ -923,8 +925,8 @@ class SubtitleExtractorGUI:
         queue_len = len(self.video_queue)
         self.progress_bar.configure(maximum=queue_len)
         self.video_label.configure(text=f"{self.progress_bar['value']} of {queue_len} Video(s) Completed")
-        logger.info(f"Subtitle Language: {utils.CONFIG.ocr_rec_language}\n")
-        self.thread_running = True
+        logger.info(f"Subtitle Language: {CONFIG.ocr_rec_language}\n")
+        self.thread_running, sub_ex = True, SubtitleExtractor()
         try:
             setup_ocr()
             start_time = perf_counter()
@@ -932,12 +934,12 @@ class SubtitleExtractorGUI:
                 sub_area, start_frame, stop_frame = sub_info[0], sub_info[1], sub_info[2]
                 start_frame = int(start_frame) if start_frame else start_frame
                 stop_frame = int(stop_frame) if stop_frame else stop_frame
-                if utils.Process.interrupt_process:
+                if Process.interrupt_process:
                     logger.warning("Process interrupted\n")
                     self.thread_running = False
                     self._stop_sub_extraction_process()
                     return
-                self.sub_ex.run_extraction(video, sub_area, start_frame, stop_frame)
+                sub_ex.run_extraction(video, sub_area, start_frame, stop_frame)
                 self.progress_bar['value'] += 1
                 self.video_label.configure(text=f"{self.progress_bar['value']} of {queue_len} Video(s) Completed")
         except Exception as error:
@@ -954,7 +956,7 @@ class SubtitleExtractorGUI:
         Stop program from running.
         """
         logger.debug("Stop button clicked")
-        utils.Process.stop_process()
+        Process.stop_process()
         if not self.thread_running:
             self.run_button.configure(text="Run", command=self._run_sub_extraction)
             self._set_gui_state("normal")
@@ -969,7 +971,7 @@ class SubtitleExtractorGUI:
             if confirmation:
                 self.current_video = None
                 self.video_capture.release()
-                utils.Process.start_process()
+                Process.start_process()
                 self.run_button.configure(text='Stop', command=self._stop_sub_extraction_process)
                 self._set_gui_state("disabled", "extraction")
                 self.progress_bar.configure(value=0)
@@ -1006,11 +1008,11 @@ class SubtitleExtractorGUI:
         self._apply_menu_hover()  # Add or remove hover as the state changes
 
     def _set_update_checker(self) -> None:
-        utils.CONFIG.set_config(check_for_updates=self.check_for_updates.get())
+        CONFIG.set_config(check_for_updates=self.check_for_updates.get())
 
     def _update_checker(self) -> None:
         if getattr(sys, "frozen", False) and self.check_for_updates.get():
-            Thread(target=utils.check_for_updates(), daemon=True).start()
+            Thread(target=check_for_updates, daemon=True).start()
 
     def clear_notifications(self) -> None:
         """
@@ -1025,7 +1027,7 @@ class SubtitleExtractorGUI:
         """
         Method called when window is closed.
         """
-        utils.Process.stop_process()
+        Process.stop_process()
         if not self.thread_running:
             self.clear_notifications()
             self.root.quit()
@@ -1088,7 +1090,7 @@ class PreferencesUI(tk.Toplevel):
         self._set_reset_button()  # Set the reset button when layout is created.
         self._set_ocr_perf_state()
 
-        set_title_bar_colour(self.winfo_id(), utils.CONFIG.use_dark_mode)
+        set_title_bar_colour(self.winfo_id(), CONFIG.use_dark_mode)
         self.update_idletasks()
         self.deiconify()
 
@@ -1118,7 +1120,7 @@ class PreferencesUI(tk.Toplevel):
         ttk.Label(subtitle_detection_frame, text="Split Start (Relative position):").grid(
             column=0, row=0, pady=self.wgt_y_padding
         )
-        self.split_start = self.make_pref_var(utils.CONFIG.split_start)
+        self.split_start = self.make_pref_var(CONFIG.split_start)
         ttk.Spinbox(
             subtitle_detection_frame,
             from_=0, to=0.5,
@@ -1129,7 +1131,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=0)
 
         ttk.Label(subtitle_detection_frame, text="Split Stop (Relative position):").grid(column=0, row=1)
-        self.split_stop = self.make_pref_var(utils.CONFIG.split_stop)
+        self.split_stop = self.make_pref_var(CONFIG.split_stop)
         ttk.Spinbox(
             subtitle_detection_frame,
             from_=0.5, to=1.0,
@@ -1140,7 +1142,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=1)
 
         ttk.Label(subtitle_detection_frame, text="No of Frames:").grid(column=0, row=2, pady=self.wgt_y_padding)
-        self.no_of_frames = self.make_pref_var(utils.CONFIG.no_of_frames)
+        self.no_of_frames = self.make_pref_var(CONFIG.no_of_frames)
         check_int = (self.register(self._check_integer), '%P')
         ttk.Entry(
             subtitle_detection_frame,
@@ -1151,7 +1153,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=2)
 
         ttk.Label(subtitle_detection_frame, text="X Axis Padding (Relative):").grid(column=0, row=3)
-        self.sub_area_x_rel_padding = self.make_pref_var(utils.CONFIG.sub_area_x_rel_padding)
+        self.sub_area_x_rel_padding = self.make_pref_var(CONFIG.sub_area_x_rel_padding)
         ttk.Spinbox(
             subtitle_detection_frame,
             from_=0.5, to=1.0,
@@ -1164,7 +1166,7 @@ class PreferencesUI(tk.Toplevel):
         ttk.Label(subtitle_detection_frame, text="Y Axis Padding (Absolute):").grid(
             column=0, row=4, pady=self.wgt_y_padding
         )
-        self.sub_area_y_abs_padding = self.make_pref_var(utils.CONFIG.sub_area_y_abs_padding)
+        self.sub_area_y_abs_padding = self.make_pref_var(CONFIG.sub_area_y_abs_padding)
         check_int = (self.register(self._check_integer), '%P')
         ttk.Entry(
             subtitle_detection_frame,
@@ -1175,7 +1177,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=4)
 
         ttk.Label(subtitle_detection_frame, text="BBox Drop Score:").grid(column=0, row=5)
-        self.bbox_drop_score = self.make_pref_var(utils.CONFIG.bbox_drop_score)
+        self.bbox_drop_score = self.make_pref_var(CONFIG.bbox_drop_score)
         ttk.Spinbox(
             subtitle_detection_frame,
             from_=0, to=1.0,
@@ -1185,7 +1187,7 @@ class PreferencesUI(tk.Toplevel):
             width=self.spinbox_size
         ).grid(column=1, row=5)
 
-        self.use_search_area = self.make_pref_var(utils.CONFIG.use_search_area)
+        self.use_search_area = self.make_pref_var(CONFIG.use_search_area)
         ttk.Checkbutton(
             subtitle_detection_frame,
             text='Use Default Search Area',
@@ -1205,7 +1207,7 @@ class PreferencesUI(tk.Toplevel):
         ttk.Label(frame_extraction_frame, text="Frame Extraction Frequency:").grid(
             column=0, row=0, pady=self.wgt_y_padding
         )
-        self.frame_extraction_frequency = self.make_pref_var(utils.CONFIG.frame_extraction_frequency)
+        self.frame_extraction_frequency = self.make_pref_var(CONFIG.frame_extraction_frequency)
         ttk.Spinbox(
             frame_extraction_frame,
             from_=1.0, to=10,
@@ -1215,7 +1217,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=0)
 
         ttk.Label(frame_extraction_frame, text="Frame Extraction Batch Size:").grid(column=0, row=1)
-        self.frame_extraction_batch_size = self.make_pref_var(utils.CONFIG.frame_extraction_batch_size)
+        self.frame_extraction_batch_size = self.make_pref_var(CONFIG.frame_extraction_batch_size)
         check_int = (self.register(self._check_integer), '%P')
         ttk.Entry(
             frame_extraction_frame,
@@ -1248,7 +1250,7 @@ class PreferencesUI(tk.Toplevel):
         ttk.Label(text_extraction_frame, text="Text Extraction Batch Size:").grid(
             column=0, row=0, pady=self.wgt_y_padding
         )
-        self.text_extraction_batch_size = self.make_pref_var(utils.CONFIG.text_extraction_batch_size)
+        self.text_extraction_batch_size = self.make_pref_var(CONFIG.text_extraction_batch_size)
         check_int = (self.register(self._check_integer), '%P')
         ttk.Entry(
             text_extraction_frame,
@@ -1259,7 +1261,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=0)
 
         ttk.Label(text_extraction_frame, text="Text Drop Score:").grid(column=0, row=2)
-        self.text_drop_score = self.make_pref_var(utils.CONFIG.text_drop_score)
+        self.text_drop_score = self.make_pref_var(CONFIG.text_drop_score)
         ttk.Spinbox(
             text_extraction_frame,
             from_=0, to=1.0,
@@ -1269,7 +1271,7 @@ class PreferencesUI(tk.Toplevel):
             width=self.spinbox_size
         ).grid(column=1, row=2)
 
-        self.line_break = self.make_pref_var(utils.CONFIG.line_break)
+        self.line_break = self.make_pref_var(CONFIG.line_break)
         ttk.Checkbutton(
             text_extraction_frame,
             text='Use Line Break',
@@ -1284,7 +1286,7 @@ class PreferencesUI(tk.Toplevel):
         notebook_tab.add(models_frame, text="OCR Engine")
 
         ttk.Label(models_frame, text="OCR Recognition Language:").grid(column=0, row=0, pady=self.wgt_y_padding)
-        self.ocr_rec_language = self.make_pref_var(utils.CONFIG.ocr_rec_language)
+        self.ocr_rec_language = self.make_pref_var(CONFIG.ocr_rec_language)
         ttk.Combobox(
             models_frame,
             textvariable=self.ocr_rec_language,
@@ -1300,14 +1302,14 @@ class PreferencesUI(tk.Toplevel):
             width=self.combobox_size
         ).grid(column=1, row=0)
 
-        self.use_text_ori = self.make_pref_var(utils.CONFIG.use_text_ori)
+        self.use_text_ori = self.make_pref_var(CONFIG.use_text_ori)
         ttk.Checkbutton(
             models_frame,
             text='Use Text Line Orientation Model',
             variable=self.use_text_ori
         ).grid(column=0, row=1)
 
-        self.use_mobile_model = self.make_pref_var(utils.CONFIG.use_mobile_model)
+        self.use_mobile_model = self.make_pref_var(CONFIG.use_mobile_model)
         ttk.Checkbutton(
             models_frame,
             text='Use Mobile Model',
@@ -1322,7 +1324,7 @@ class PreferencesUI(tk.Toplevel):
         notebook_tab.add(model_performance_frame, text="OCR Performance")
 
         ttk.Label(model_performance_frame, text="CPU OCR Processes:").grid(column=0, row=0, pady=self.wgt_y_padding)
-        self.cpu_ocr_processes = self.make_pref_var(utils.CONFIG.cpu_ocr_processes)
+        self.cpu_ocr_processes = self.make_pref_var(CONFIG.cpu_ocr_processes)
         self.cpu_ocr_processes_sb = ttk.Spinbox(
             model_performance_frame,
             from_=1, to=cpu_count(),
@@ -1333,7 +1335,7 @@ class PreferencesUI(tk.Toplevel):
         self.cpu_ocr_processes_sb.grid(column=1, row=0)
 
         ttk.Label(model_performance_frame, text="CPU ONNX Intra Threads:").grid(column=0, row=1)
-        self.cpu_onnx_intra_threads = self.make_pref_var(utils.CONFIG.cpu_onnx_intra_threads)
+        self.cpu_onnx_intra_threads = self.make_pref_var(CONFIG.cpu_onnx_intra_threads)
         self.cpu_onnx_intra_threads_sb = ttk.Spinbox(
             model_performance_frame,
             from_=0, to=cpu_count(),
@@ -1344,7 +1346,7 @@ class PreferencesUI(tk.Toplevel):
         self.cpu_onnx_intra_threads_sb.grid(column=1, row=1)
 
         ttk.Label(model_performance_frame, text="GPU OCR Processes:").grid(column=0, row=2, pady=self.wgt_y_padding)
-        self.gpu_ocr_processes = self.make_pref_var(utils.CONFIG.gpu_ocr_processes)
+        self.gpu_ocr_processes = self.make_pref_var(CONFIG.gpu_ocr_processes)
         self.gpu_ocr_processes_sb = ttk.Spinbox(
             model_performance_frame,
             from_=1, to=cpu_count(),
@@ -1354,14 +1356,14 @@ class PreferencesUI(tk.Toplevel):
         )
         self.gpu_ocr_processes_sb.grid(column=1, row=2)
 
-        self.use_gpu = self.make_pref_var(utils.CONFIG.use_gpu)
+        self.use_gpu = self.make_pref_var(CONFIG.use_gpu)
         ttk.Checkbutton(
             model_performance_frame,
             text='Use GPU If Available',
             variable=self.use_gpu
         ).grid(column=0, row=3)
 
-        self.auto_optimize_perf = self.make_pref_var(utils.CONFIG.auto_optimize_perf)
+        self.auto_optimize_perf = self.make_pref_var(CONFIG.auto_optimize_perf)
         self.auto_optimize_perf.trace_add("write", self._set_ocr_perf_state)
         ttk.Checkbutton(
             model_performance_frame,
@@ -1392,7 +1394,7 @@ class PreferencesUI(tk.Toplevel):
         ttk.Label(subtitle_generator_frame, text="Text Similarity Threshold:").grid(
             column=0, row=0, pady=self.wgt_y_padding
         )
-        self.text_similarity_threshold = self.make_pref_var(utils.CONFIG.text_similarity_threshold)
+        self.text_similarity_threshold = self.make_pref_var(CONFIG.text_similarity_threshold)
         ttk.Spinbox(
             subtitle_generator_frame,
             from_=0, to=1.0,
@@ -1403,7 +1405,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=0)
 
         ttk.Label(subtitle_generator_frame, text="Minimum Consecutive Sub Duration (ms):").grid(column=0, row=1)
-        self.min_consecutive_sub_dur_ms = self.make_pref_var(utils.CONFIG.min_consecutive_sub_dur_ms)
+        self.min_consecutive_sub_dur_ms = self.make_pref_var(CONFIG.min_consecutive_sub_dur_ms)
         check_float = (self.register(self._check_float), '%P')
         ttk.Entry(
             subtitle_generator_frame,
@@ -1416,7 +1418,7 @@ class PreferencesUI(tk.Toplevel):
         ttk.Label(subtitle_generator_frame, text="Max Consecutive Short Durations:").grid(
             column=0, row=2, pady=self.wgt_y_padding
         )
-        self.max_consecutive_short_durs = self.make_pref_var(utils.CONFIG.max_consecutive_short_durs)
+        self.max_consecutive_short_durs = self.make_pref_var(CONFIG.max_consecutive_short_durs)
         ttk.Spinbox(
             subtitle_generator_frame,
             from_=2, to=10,
@@ -1427,7 +1429,7 @@ class PreferencesUI(tk.Toplevel):
         ).grid(column=1, row=2)
 
         ttk.Label(subtitle_generator_frame, text="Minimum Sub Duration (ms):").grid(column=0, row=3)
-        self.min_sub_duration_ms = self.make_pref_var(utils.CONFIG.min_sub_duration_ms)
+        self.min_sub_duration_ms = self.make_pref_var(CONFIG.min_sub_duration_ms)
         check_float = (self.register(self._check_float), '%P')
         ttk.Entry(
             subtitle_generator_frame,
@@ -1445,8 +1447,8 @@ class PreferencesUI(tk.Toplevel):
         if operating_system == "Windows":
             self._win_notifications_tab()
         else:
-            self.win_notify_sound = self.make_pref_var(utils.CONFIG.win_notify_sound)
-            self.win_notify_loop_sound = self.make_pref_var(utils.CONFIG.win_notify_loop_sound)
+            self.win_notify_sound = self.make_pref_var(CONFIG.win_notify_sound)
+            self.win_notify_loop_sound = self.make_pref_var(CONFIG.win_notify_loop_sound)
 
     def _win_notifications_tab(self) -> None:
         """
@@ -1459,7 +1461,7 @@ class PreferencesUI(tk.Toplevel):
         self.notebook_tab.add(notification_frame, text="Notification")
 
         ttk.Label(notification_frame, text="Notification Sound:").grid(column=0, row=0, pady=self.wgt_y_padding)
-        self.win_notify_sound = self.make_pref_var(utils.CONFIG.win_notify_sound)
+        self.win_notify_sound = self.make_pref_var(CONFIG.win_notify_sound)
         ttk.Combobox(
             notification_frame,
             textvariable=self.win_notify_sound,
@@ -1468,7 +1470,7 @@ class PreferencesUI(tk.Toplevel):
             width=self.combobox_size + 3
         ).grid(column=1, row=0)
 
-        self.win_notify_loop_sound = self.make_pref_var(utils.CONFIG.win_notify_loop_sound)
+        self.win_notify_loop_sound = self.make_pref_var(CONFIG.win_notify_loop_sound)
         ttk.Checkbutton(
             notification_frame,
             text='Loop Notification Sound',
@@ -1483,14 +1485,14 @@ class PreferencesUI(tk.Toplevel):
         logger.debug(f"Reset button set by -> {args}")
         default_values = [
             default
-            for section_name, section in utils.CONFIG.config_schema.items()
+            for section_name, section in CONFIG.config_schema.items()
             if section_name not in self.sections_to_skip
             for _, default in section.values()
         ]
         try:
             values = [
                 getattr(self, key).get()
-                for section_name, section in utils.CONFIG.config_schema.items()
+                for section_name, section in CONFIG.config_schema.items()
                 if section_name not in self.sections_to_skip
                 for key in section.keys()
             ]
@@ -1532,7 +1534,7 @@ class PreferencesUI(tk.Toplevel):
         """
         Change the values of the text variables to the default values.
         """
-        for section_name, section in utils.CONFIG.config_schema.items():
+        for section_name, section in CONFIG.config_schema.items():
             if section_name not in self.sections_to_skip:
                 for key, (_, default_value) in section.items():
                     getattr(self, key).set(default_value)
@@ -1544,11 +1546,11 @@ class PreferencesUI(tk.Toplevel):
         try:
             settings = {
                 key: getattr(self, key).get()
-                for section_name, section in utils.CONFIG.config_schema.items()
+                for section_name, section in CONFIG.config_schema.items()
                 if section_name not in self.sections_to_skip
                 for key in section.keys()
             }
-            utils.CONFIG.set_config(**settings)
+            CONFIG.set_config(**settings)
         except tk.TclError:
             logger.warning("An error occurred value(s) not saved!")
         self.destroy()

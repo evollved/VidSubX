@@ -1,10 +1,11 @@
 import io
 import logging
 import sys
+from logging import Handler
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
-from .utils import get_log_dir
+from infra.app_paths import AppPaths
 
 
 class LogLevelFilter(logging.Filter):
@@ -29,7 +30,7 @@ class LogLevelFilter(logging.Filter):
         return record.levelno < self.level
 
 
-def get_console_error_handler() -> logging.handlers:
+def get_console_error_handler() -> Handler:
     """
     Determine how stderr messages for the console will be handled.
     The console sends only messages by default no need for formatter.
@@ -39,7 +40,7 @@ def get_console_error_handler() -> logging.handlers:
     return error_handler
 
 
-def get_console_handler() -> logging.handlers:
+def get_console_handler() -> Handler:
     """
     Determine how stdout messages for the console will be handled.
     The console sends only messages by default no need for formatter.
@@ -50,12 +51,12 @@ def get_console_handler() -> logging.handlers:
     return console_handler
 
 
-def get_file_handler(log_format: logging.Formatter) -> logging.handlers:
+def get_file_handler(log_format: logging.Formatter) -> Handler:
     """
     Determine how the log messages are handled for log files.
     """
     # Create folder for file logs.
-    log_dir = get_log_dir() / "logs"
+    log_dir = AppPaths.logs()
     log_dir.mkdir(exist_ok=True)
 
     log_file = log_dir / "runtime.log"

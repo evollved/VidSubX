@@ -4,7 +4,9 @@ from pathlib import Path
 
 import cv2 as cv
 
-import utilities.utils as utils
+from shared.config import CONFIG
+from shared.process import Process
+from shared.utils import print_progress, cancel_futures
 
 logger = logging.getLogger(__name__)
 
@@ -62,13 +64,13 @@ def video_to_frames(video_path: str, frames_dir: Path, key_area: tuple | None, s
     :param video_path: path like string to the video
     :param frames_dir: directory to save the frames
     :param key_area: coordinates of the frame containing subtitle
-    :param start_frame: The frame where image extractions from video starts.
-    :param stop_frame: The frame where image extractions from video stops.
+    :param start_frame: The frame where image extraction from video starts.
+    :param stop_frame: The frame where image extraction from video stops.
     """
-    every = utils.CONFIG.frame_extraction_frequency  # extract every this many frames.
-    batch_size = utils.CONFIG.frame_extraction_batch_size
+    every = CONFIG.frame_extraction_frequency  # extract every this many frames.
+    batch_size = CONFIG.frame_extraction_batch_size
     prefix = "Frame Extraction"
-    if utils.Process.interrupt_process:  # cancel if process has been canceled by gui.
+    if Process.interrupt_process:  # cancel if process has been canceled by gui.
         logger.warning(f"{prefix} process interrupted!")
         return
 
@@ -95,9 +97,9 @@ def video_to_frames(video_path: str, frames_dir: Path, key_area: tuple | None, s
                    for f in frame_batches]  # submit the processes: extract_frames(...)
         for i, f in enumerate(as_completed(futures)):  # as each process completes
             f.result()  # Prevents silent bugs. Exceptions raised will now be displayed.
-            utils.print_progress(i, no_batches - 1, prefix)
-            if utils.Process.interrupt_process:
+            print_progress(i, no_batches - 1, prefix)
+            if Process.interrupt_process:
                 logger.warning(f"\n{prefix} Executor process interrupted!")
-                utils.cancel_futures(futures)
+                cancel_futures(futures)
                 return
     logger.info(f"{prefix} done!")

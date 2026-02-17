@@ -6,6 +6,8 @@ from datetime import timedelta
 from pathlib import Path
 from time import perf_counter
 
+from infra.app_paths import AppPaths
+
 
 def run_command(command: list, use_shell: bool = False) -> None:
     subprocess.run(command, check=True, shell=use_shell)
@@ -27,7 +29,7 @@ def install_package(name: str) -> None:
 
 
 def download_all_models() -> None:
-    import utilities.utils as utils
+    from shared.config import CONFIG
     from custom_ocr import CustomPaddleOCR
 
     txt_line_ori_models = ["PP-LCNet_x0_25_textline_ori", "PP-LCNet_x1_0_textline_ori"]
@@ -36,28 +38,26 @@ def download_all_models() -> None:
                   'cyrillic_PP-OCRv5_mobile_rec', 'devanagari_PP-OCRv5_mobile_rec', 'en_PP-OCRv5_mobile_rec',
                   'eslav_PP-OCRv5_mobile_rec', 'korean_PP-OCRv5_mobile_rec', 'latin_PP-OCRv5_mobile_rec',
                   'ta_PP-OCRv5_mobile_rec', 'te_PP-OCRv5_mobile_rec']
-    utils.CONFIG.ocr_opts["use_gpu"] = False
+    CONFIG.ocr_opts["use_gpu"] = False
     for model in txt_line_ori_models:
         print(f"\nChecking for {model} model...")
-        _ = CustomPaddleOCR(textline_orientation_model_name=model, **utils.CONFIG.ocr_opts)
+        _ = CustomPaddleOCR(textline_orientation_model_name=model, **CONFIG.ocr_opts)
         print("-" * 150)
     print("-" * 200)
     for model in det_models:
         print(f"\nChecking for {model} model...")
-        _ = CustomPaddleOCR(text_detection_model_name=model, **utils.CONFIG.ocr_opts)
+        _ = CustomPaddleOCR(text_detection_model_name=model, **CONFIG.ocr_opts)
         print("-" * 150)
     print("-" * 200)
     for model in rec_models:
         print(f"\nChecking for {model} model...")
-        _ = CustomPaddleOCR(text_recognition_model_name=model, **utils.CONFIG.ocr_opts)
+        _ = CustomPaddleOCR(text_recognition_model_name=model, **CONFIG.ocr_opts)
         print("-" * 150)
 
 
 def remove_non_onnx_models() -> None:
-    import utilities.utils as utils
-
     print("\nRemoving all non Onnx Models...")
-    for file in utils.CONFIG.model_dir.rglob("*"):
+    for file in AppPaths.models().rglob("*"):
         if file.is_file() and ".onnx" not in file.name and ".yml" not in file.name:
             print(f"Removing file: {file}")
             file.unlink()
@@ -93,9 +93,7 @@ def compile_program(gpu_enabled: bool) -> None:
 
 
 def create_installer(gpu_enabled: bool) -> None:
-    import utilities.utils as utils
-
-    version = utils.CONFIG.version_file.read_text()
+    version = AppPaths.version_file.read_text()
     name = f"VSX-{platform.system()}-{'GPU' if gpu_enabled else 'CPU'}-v{version}"
     inno_exe = Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe")
     if platform.system() == "Windows" and inno_exe.exists():
